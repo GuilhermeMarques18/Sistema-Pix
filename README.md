@@ -1,30 +1,81 @@
-## 📍 Endpoints da API
+## Rotas da API
 
-A URL base para todos os endpoints de usuário é: `/api/users`
+As rotas abaixo usam a aplicação local como base, por exemplo: `http://localhost:8080`.
 
-### 1. Cadastrar Pessoa Física
-Cria um novo usuário do tipo Pessoa Física. O sistema valida se o e-mail, telefone ou CPF já estão em uso.
+As rotas protegidas exigem o header `Authorization: Bearer <token>`, obtido pela rota de login.
 
-* **Método:** `POST`
-* **Rota:** `/pessoa-fisica`
-* **Corpo da Requisição (JSON):**
-  ```json
-  {
-    "name": "João da Silva",
-    "email": "joao@email.com",
-    "telefone": "+5511999999999",
-    "cpf": "123.456.789-00"
-  }
+### Autenticação
 
-### 2. Cadastrar Pessoa Jurídica
-Cria um novo usuário do tipo Pessoa Jurídica com validação específica de CNPJ.
-* **Método:** `POST`
-* **Rota:** `/pessoa-juridica`
-* **Corpo da Requisição (JSON):**
-  ```json
-    {
-    "name": "Avante Tech Junior",
-    "email": "contato@avantetech.com",
-    "telefone": "+5588988887777",
-    "cnpj": "11.222.333/0001-81"
-    }
+#### Login
+
+**POST** `/api/auth/login`
+
+Body:
+
+```json
+{
+  "email": "joao@email.com",
+  "password": "senha123"
+}
+```
+
+Resposta:
+
+```json
+{
+  "token": "<jwt>",
+  "tokenType": "Bearer"
+}
+```
+
+### Usuários
+
+#### Cadastrar pessoa física
+
+**POST** `/api/users/pessoa-fisica`
+
+Body:
+
+```json
+{
+  "name": "João da Silva",
+  "email": "joao@email.com",
+  "password": "senha123",
+  "telefone": "+5511999999999",
+  "cpf": "123.456.789-00"
+}
+```
+
+#### Cadastrar pessoa jurídica
+
+**POST** `/api/users/pessoa-juridica`
+
+Body:
+
+```json
+{
+  "name": "Avante Tech Junior",
+  "email": "contato@avantetech.com",
+  "password": "senha123",
+  "telefone": "+5588988887777",
+  "cnpj": "11.222.333/0001-81"
+}
+```
+
+#### Listar todos os usuários
+
+**GET** `/api/users`
+
+Rota protegida por autenticação.
+
+#### Buscar usuário por ID
+
+**GET** `/api/users/{id}`
+
+Substitua `{id}` pelo UUID do usuário. Rota protegida por autenticação.
+
+#### Remover usuário
+
+**DELETE** `/api/users/{id}`
+
+Substitua `{id}` pelo UUID do usuário. Rota protegida por autenticação.
