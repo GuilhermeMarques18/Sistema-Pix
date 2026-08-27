@@ -1,6 +1,7 @@
 package user;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import user.dto.LegalEntityDTO;
@@ -19,6 +20,7 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public UserResponseDTO createNaturalPerson(NaturalPersonDTO dto) {
@@ -27,6 +29,7 @@ public class UserService {
         UserModel user = UserModel.builder()
                 .name(dto.name())
                 .email(dto.email())
+                .password(passwordEncoder.encode(dto.password()))
                 .telefone(dto.telefone())
                 .docs(dto.cpf())
                 .typePerson(TypePerson.FISICA)
@@ -42,6 +45,7 @@ public class UserService {
         UserModel user = UserModel.builder()
                 .name(dto.name())
                 .email(dto.email())
+                .password(passwordEncoder.encode(dto.password()))
                 .telefone(dto.telefone())
                 .docs(dto.cnpj())
                 .typePerson(TypePerson.JURIDICA)

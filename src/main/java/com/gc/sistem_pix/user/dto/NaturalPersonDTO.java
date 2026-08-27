@@ -9,6 +9,7 @@ import org.hibernate.validator.constraints.br.CPF;
 public record NaturalPersonDTO(
         @NotBlank @Size(min = 3, max = 150) String name,
         @NotBlank @Email String email,
+        @NotBlank String password,
         @NotBlank @Pattern(regexp = "\\+?[0-9]{10,13}") String telefone,
         @NotBlank @CPF(message = "CPF inválido") String cpf
 ) {}
