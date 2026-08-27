@@ -1,4 +1,4 @@
-package user;
+package com.gc.sistem_pix.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

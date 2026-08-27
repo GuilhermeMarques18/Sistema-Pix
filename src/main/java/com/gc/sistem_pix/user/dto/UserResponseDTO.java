@@ -1,6 +1,6 @@
-package user.dto;
+package com.gc.sistem_pix.user.dto;
 
-import user.enumeration.TypePerson;
+import com.gc.sistem_pix.user.enumeration.TypePerson;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

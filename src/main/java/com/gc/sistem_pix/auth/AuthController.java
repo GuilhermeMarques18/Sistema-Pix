@@ -1,8 +1,8 @@
-package auth;
+package com.gc.sistem_pix.auth;
 
-import auth.dto.LoginRequestDTO;
-import auth.dto.LoginResponseDTO;
-import user.UserModel;
+import com.gc.sistem_pix.auth.dto.LoginRequestDTO;
+import com.gc.sistem_pix.auth.dto.LoginResponseDTO;
+import com.gc.sistem_pix.user.UserModel;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

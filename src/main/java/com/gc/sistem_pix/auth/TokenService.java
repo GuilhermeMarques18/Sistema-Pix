@@ -1,6 +1,10 @@
-package auth;
+package com.gc.sistem_pix.auth;
 
-import user.UserModel;
+import com.gc.sistem_pix.user.UserModel;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;

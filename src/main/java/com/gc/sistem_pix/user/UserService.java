@@ -1,15 +1,15 @@
-package user;
+package com.gc.sistem_pix.user;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import user.dto.LegalEntityDTO;
-import user.dto.NaturalPersonDTO;
-import user.dto.UserResponseDTO;
-import user.enumeration.TypePerson;
-import user.exception.DuplicateResourceException;
-import user.exception.ResourceNotFoundException;
+import com.gc.sistem_pix.user.dto.LegalEntityDTO;
+import com.gc.sistem_pix.user.dto.NaturalPersonDTO;
+import com.gc.sistem_pix.user.dto.UserResponseDTO;
+import com.gc.sistem_pix.user.enumeration.TypePerson;
+import com.gc.sistem_pix.user.exception.DuplicateResourceException;
+import com.gc.sistem_pix.user.exception.ResourceNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;

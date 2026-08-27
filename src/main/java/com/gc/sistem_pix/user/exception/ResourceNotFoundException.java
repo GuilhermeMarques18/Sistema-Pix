@@ -1,4 +1,4 @@
-package user.exception;
+package com.gc.sistem_pix.user.exception;
 
 public class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message) {

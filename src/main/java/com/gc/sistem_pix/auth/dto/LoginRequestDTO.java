@@ -1,4 +1,4 @@
-package auth.dto;
+package com.gc.sistem_pix.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

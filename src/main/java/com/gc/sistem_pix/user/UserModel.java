@@ -1,4 +1,4 @@
-package user;
+package com.gc.sistem_pix.user;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -6,13 +6,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLRestriction;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.domain.Auditable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import user.enumeration.TypePerson;
+import com.gc.sistem_pix.user.enumeration.TypePerson;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -61,7 +61,7 @@ public class UserModel implements UserDetails {
     @Column(nullable = false)
     private TypePerson typePerson;
 
-    @CreatedDate
+    @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdUser;
 

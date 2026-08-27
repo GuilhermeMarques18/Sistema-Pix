@@ -1,12 +1,12 @@
-package user;
+package com.gc.sistem_pix.user;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import user.dto.LegalEntityDTO;
-import user.dto.NaturalPersonDTO;
-import user.dto.UserResponseDTO;
+import com.gc.sistem_pix.user.dto.LegalEntityDTO;
+import com.gc.sistem_pix.user.dto.NaturalPersonDTO;
+import com.gc.sistem_pix.user.dto.UserResponseDTO;
 
 import java.net.URI;
 import java.util.List;

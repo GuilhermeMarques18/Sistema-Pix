@@ -1,4 +1,4 @@
-package user.dto;
+package com.gc.sistem_pix.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
