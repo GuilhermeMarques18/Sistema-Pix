@@ -4,7 +4,7 @@
 ## Sobre o Projeto
 
 Este projeto é desenvolvido como parte da disciplina de **Gerência de Configuração**, na Universidade Federal do Ceará (UFC) - Campus Quixadá.
-
+z
 O objetivo é simular, na prática, um projeto real de desenvolvimento de software: uso de controle de versão em equipe, revisão de código via Pull Requests, boas práticas de POO e a construção de um sistema funcional que reproduz parte das funcionalidades do Pix.
 
 ## Diagrama do Banco de Dados
@@ -71,6 +71,63 @@ O desenvolvimento está dividido em três entregas principais:
 -   Registrar Localização de Transações Pix
 -   Realizar Pix Agendado
 
+## Módulo de Conta Bancária (API - Endpoints)
+
+### Requisitos
+
+* Cada usuário pode possuir no máximo uma conta bancária, vinculada pelo `userId`.
+* O número da conta é gerado automaticamente com 8 dígitos.
+* A agência é fixa: `0001`.
+* O saldo inicial é `0.00`.
+* O limite de transações inicia em `0.00` e pode ser atualizado.
+* A remoção da conta é lógica: a conta passa a ter `ativo = false`.
+* Chaves PIX serão tratadas separadamente em outra branch.
+
+### Endpoints
+
+| Método | Rota                      | Descrição                       |
+| ------ | ------------------------- | ------------------------------- |
+| POST   | `/accounts`               | Cria uma conta                  |
+| GET    | `/accounts/{id}`          | Busca uma conta pelo ID         |
+| GET    | `/accounts/user/{userId}` | Busca a conta de um usuário     |
+| PATCH  | `/accounts/{id}`          | Atualiza o limite de transações |
+| DELETE | `/accounts/{id}`          | Remove uma conta                |
+
+### Criar conta
+
+`POST /accounts`
+
+```json
+{
+  "userId": "b3f1c2a0-1234-4a5b-9c8d-abcdef123456"
+}
+```
+
+### Atualizar limite de transações
+
+`PATCH /accounts/{id}`
+
+```json
+{
+  "transactionLimit": 1500.00
+}
+```
+
+O limite não pode ser negativo.
+
+### Remover conta
+
+`DELETE /accounts/{id}`
+
+A remoção é lógica. A conta recebe `ativo = false` e a data da remoção é armazenada em `deletedAt`.
+
+### Possíveis erros
+
+* `404 Not Found` — usuário ou conta não encontrada.
+* `409 Conflict` — usuário já possui uma conta.
+* `400 Bad Request` — dados enviados são inválidos.
+
+
 ## Como Executar o Projeto 
 
 Pré-requisitos: Java 21 (JDK) e um PostgreSQL disponível (local ou via Docker).
@@ -119,3 +176,6 @@ Pré-requisitos: Java 21 (JDK) e um PostgreSQL disponível (local ou via Docker)
 -   [Davy](https://github.com/dnastins)
 -   [Geovana](https://github.com/Dev-Nana)
 -   [Ana Luiza](https://github.com/Nalu2)
+
+
+
