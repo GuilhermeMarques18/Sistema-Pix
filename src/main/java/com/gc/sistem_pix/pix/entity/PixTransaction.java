@@ -48,14 +48,14 @@ public class PixTransaction {
     @Column(name = "data_hora", nullable = false, updatable = false)
     private LocalDateTime dataHora;
 
-    //@Builder.Default
-    //@Column(name = "transacao_estornada", nullable = false)
-    //private boolean transacaoEstornada = false;
-    //@Builder.Default
-    //@Column(name = "transacao_agendada", nullable = false)
-    //private boolean transacaoAgendada = false;
-    //@Column(name = "local_transacao", length = 255)
-    //private String localTransacao;
+    // @Builder.Default
+    // @Column(name = "transacao_estornada", nullable = false)
+    // private boolean transacaoEstornada = false;
+    // @Builder.Default
+    // @Column(name = "transacao_agendada", nullable = false)
+    // private boolean transacaoAgendada = false;
+    // @Column(name = "local_transacao", length = 255)
+    // private String localTransacao;
     @PrePersist
     protected void aoCriar() {
         if (dataHora == null) {

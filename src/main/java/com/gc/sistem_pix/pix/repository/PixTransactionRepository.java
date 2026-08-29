@@ -1,9 +1,10 @@
 package com.gc.sistem_pix.pix.repository;
 
-import com.gc.sistem_pix.pix.entity.PixTransaction;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.UUID;
+import com.gc.sistem_pix.pix.entity.PixTransaction;
 
 public interface PixTransactionRepository extends JpaRepository<PixTransaction, UUID> {
 }
