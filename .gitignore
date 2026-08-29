@@ -37,7 +37,7 @@ nbdist/
 !.vscode/extensions.json
 
 # Environment variables
-.env
+*.env
 !.env.example
 
 # Logs
