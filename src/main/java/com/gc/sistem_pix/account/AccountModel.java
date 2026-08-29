@@ -45,6 +45,11 @@ public class AccountModel {
     @Builder.Default
     private BigDecimal balance = BigDecimal.ZERO;
 
+    @NotNull
+    @Column(nullable = false, precision = 19, scale = 2)
+    @Builder.Default
+    private BigDecimal transactionLimit = BigDecimal.ZERO;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAccount;
