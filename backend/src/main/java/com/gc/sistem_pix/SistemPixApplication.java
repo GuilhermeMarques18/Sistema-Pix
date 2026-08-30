@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class SistemPixApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SistemPixApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(SistemPixApplication.class, args);
+    }
 
 }
