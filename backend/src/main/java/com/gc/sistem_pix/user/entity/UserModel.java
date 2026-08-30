@@ -1,18 +1,27 @@
-package com.gc.sistem_pix.user;
+package com.gc.sistem_pix.user.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
+import com.gc.sistem_pix.user.enums.NotificationType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLRestriction;
-import org.jspecify.annotations.Nullable;
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import com.gc.sistem_pix.user.enumeration.TypePerson;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -24,61 +33,53 @@ import java.util.UUID;
 @NoArgsConstructor
 @Builder
 @Entity
-@Table(name = "users")
+@Table(name = "usuario")
 @Data
 public class UserModel implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id_usuario", nullable = false, updatable = false)
     private UUID id;
 
     @NotNull(message = "Nome não pode estar nulo")
     @Size(min = 3, max = 150)
-    @Column(nullable = false)
+    @Column(name = "nome", nullable = false, length = 255)
     private String name;
 
     @Email
     @NotBlank
-    @Column(nullable = false, unique = true)
+    @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
     @NotBlank
-    @Size(min =8, message = "Senha deve ter pelo menos 8 digitos")
+    @Size(min = 8, message = "Senha deve ter pelo menos 8 digitos")
+    @Column(name = "senha", nullable = false, length = 255)
     private String password;
-
 
     @NotBlank
     @Pattern(regexp = "\\+?[0-9]{10,13}", message = "Telefone inválido")
-    @Column(nullable = false, unique = true)
+    @Column(name = "telefone", nullable = false, unique = true, length = 255)
     private String telefone;
 
-    @NotBlank
-    @Column(nullable = false, unique = true)
-    private  String docs;
-
     @Enumerated(EnumType.STRING)
-    @NotNull
-    @Column(nullable = false)
-    private TypePerson typePerson;
+    @Column(name = "tipo_notificacao", length = 77)
+    private NotificationType notificationType;
 
     @CreationTimestamp
-    @Column(updatable = false)
+    @Column(name = "criado_em", nullable = false, updatable = false)
     private LocalDateTime createdUser;
 
-    @Column(nullable = false)
+    @Column(name = "ativo", nullable = false)
     @Builder.Default
     private boolean ativo = true;
 
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();
-    }
-
-    @Override
-    public @Nullable String getPassword() {
-        return password;
     }
 
     @Override

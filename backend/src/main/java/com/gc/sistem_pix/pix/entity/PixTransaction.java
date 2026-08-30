@@ -39,7 +39,7 @@ public class PixTransaction {
     @Column(name = "id_conta_destino", nullable = false, updatable = false)
     private UUID contaDestinoId;
 
-    @Column(name = "descricao", length = 255)
+    @Column(name = "descricao", length = 100)
     private String descricao;
 
     @Column(name = "valor", nullable = false, precision = 19, scale = 2)
