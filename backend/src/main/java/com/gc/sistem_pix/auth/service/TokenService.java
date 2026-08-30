@@ -1,17 +1,22 @@
-package com.gc.sistem_pix.auth;
+package com.gc.sistem_pix.auth.service;
 
-import com.gc.sistem_pix.user.UserModel;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.UUID;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.gc.sistem_pix.user.entity.UserModel;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 
 @Service
 public class TokenService {
@@ -40,14 +45,20 @@ public class TokenService {
                 .compact();
     }
 
-    public String validateTokenAndGetSubject(String token) {
+    public UUID validateTokenAndGetUserId(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(signingKey())
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return claims.getSubject();
+
+            String userId = claims.get("id", String.class);
+            if (userId == null) {
+                return null;
+            }
+
+            return UUID.fromString(userId);
         } catch (JwtException | IllegalArgumentException e) {
             return null;
         }

@@ -1,7 +1,7 @@
 package com.gc.sistem_pix.infra.security;
 
-import com.gc.sistem_pix.auth.TokenService;
-import com.gc.sistem_pix.user.UserModel;
+import com.gc.sistem_pix.auth.service.TokenService;
+import com.gc.sistem_pix.user.entity.UserModel;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,9 +11,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import com.gc.sistem_pix.user.UserRepository;
+import com.gc.sistem_pix.user.repository.UserRepository;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -29,9 +30,9 @@ public class SecurityFilter extends OncePerRequestFilter {
         String token = extractToken(request);
 
         if (token != null) {
-            String email = tokenService.validateTokenAndGetSubject(token);
-            if (email != null) {
-                UserModel user = userRepository.findByEmail(email).orElse(null);
+            UUID userId = tokenService.validateTokenAndGetUserId(token);
+            if (userId != null) {
+                UserModel user = userRepository.findById(userId).orElse(null);
                 if (user != null) {
                     var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);

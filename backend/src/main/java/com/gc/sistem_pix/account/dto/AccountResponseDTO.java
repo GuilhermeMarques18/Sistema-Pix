@@ -4,23 +4,17 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.gc.sistem_pix.account.enums.AccountStatus;
+import com.gc.sistem_pix.account.enums.AccountType;
+
 public record AccountResponseDTO(
-
-        UUID id,
-
-        String accountNumber,
-
-        String agency,
-
-        BigDecimal balance,
-
-        BigDecimal transactionLimit,
-
-        UUID userId,
-
-        String ownerName,
-
-        LocalDateTime createdAccount
-
-) {
+                UUID id,
+                UUID userId,
+                String ownerName,
+                BigDecimal balance,
+                AccountStatus status,
+                AccountType type,
+                Integer transactionLimit,
+                Integer pixLimit,
+                LocalDateTime createdAccount) {
 }

@@ -29,14 +29,11 @@ HELP.md
 *.ipr
 
 # NetBeans
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
 
 # VS Code
 *.vscode/
@@ -44,9 +41,10 @@ build/
 !.vscode/extensions.json
 
 # Environment variables
-.env
+*.env
 !.env.example
 
 # Logs
 *.log
-
+### ENV ###
+*.env

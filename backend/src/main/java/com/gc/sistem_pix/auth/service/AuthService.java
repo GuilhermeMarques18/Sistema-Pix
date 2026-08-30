@@ -1,11 +1,12 @@
-package com.gc.sistem_pix.auth;
+package com.gc.sistem_pix.auth.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import com.gc.sistem_pix.user.UserRepository;
+
+import com.gc.sistem_pix.user.repository.UserRepository;
 
 @Service
 public class AuthService implements UserDetailsService {
@@ -18,6 +19,5 @@ public class AuthService implements UserDetailsService {
         return repository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + email));
     }
-
 
 }
