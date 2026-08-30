@@ -1,6 +1,10 @@
 # Maven
 **/target/
+HELP.md
+target/
 .mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
 
 # Gradle
 **/build/
@@ -9,14 +13,14 @@
 # Spring Initializr
 HELP.md
 
-# Eclipse / Spring Tools Suite
-.apt_generated/
+### STS ###
+.apt_generated
 .classpath
 .factorypath
 .project
-.settings/
+.settings
 .springBeans
-.sts4-cache/
+.sts4-cache
 
 # IntelliJ IDEA
 .idea/
@@ -42,3 +46,5 @@ nbdist/
 
 # Logs
 *.log
+### ENV ###
+*.env
