@@ -38,7 +38,6 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-
 # VS Code
 *.vscode/
 !.vscode/settings.json
@@ -50,3 +49,4 @@ build/
 
 # Logs
 *.log
+
