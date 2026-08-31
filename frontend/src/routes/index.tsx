@@ -4,6 +4,11 @@ import { LoginPage } from '@/app/features/auth';
 import { DashboardPage } from '@/app/features/dashboard';
 import { AppShellLayout } from '@/app/layout';
 
+// Importações das novas páginas
+import { KeysPage } from '@/app/features/keys/pages/KeysPage';
+import { NewKeyPage } from '@/app/features/keys/pages/NewKeyPage';
+import { RegisterKeyPage } from '@/app/features/keys/pages/RegisterKeyPage';
+import { ProfilePage } from '@/app/features/profile/pages/ProfilePage';
 /**
  * Definição central de todas as rotas da aplicação.
  * Adicione novas rotas aqui conforme as features forem criadas.
@@ -23,7 +28,12 @@ export function AppRoutes() {
       <Route element={<AppShellLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/extrato" element={<div className="p-8 text-text">Extrato</div>} />
-        <Route path="/chaves" element={<div className="p-8 text-text">Chaves Pix</div>} />
+        <Route path="/keys">
+          <Route index element={<KeysPage />} />
+          <Route path="new" element={<NewKeyPage />} />
+          <Route path="new/:type" element={<RegisterKeyPage />} />
+        </Route> 
+        <Route path="/profile" element={<ProfilePage />} />       
         <Route path="/ajustes" element={<div className="p-8 text-text">Ajustes</div>} />
       </Route>
 
