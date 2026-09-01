@@ -1,7 +1,7 @@
 'use client';
 
 import { Outlet } from 'react-router-dom';
-import { BottomNav } from '@/app/features/dashboard/components';
+import { BottomNav } from '@/app/shared/components/ui/BottomNav';
 
 /**
  * Layout com BottomNav fixo.
