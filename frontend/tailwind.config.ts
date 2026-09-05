@@ -23,6 +23,7 @@ const config: Config = {
           secondary: '#9EA2A6',
           tertiary: '#4CB277',
           negative: '#C86159',
+          warning: '#F59E0B',
         },
         border: '#23272C',
       },
