@@ -4,4 +4,4 @@ export { QuickActions } from './QuickActions';
 export { TransactionList } from './TransactionList';
 export { TransactionItem } from './TransactionItem';
 export type { Transaction, TransactionType } from './TransactionItem';
-export { BottomNav } from './BottomNav';
+export { BottomNav } from '../../../shared/components/ui/BottomNav';
