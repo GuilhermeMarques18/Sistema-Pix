@@ -17,6 +17,7 @@ const config: Config = {
         bg: {
           DEFAULT: '#151B1F',
           input: '#23272C',
+          'input-hover': '#2A3035',
         },
         text: {
           DEFAULT: '#E6E6E6',
