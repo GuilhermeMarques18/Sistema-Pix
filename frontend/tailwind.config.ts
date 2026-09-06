@@ -17,6 +17,7 @@ const config: Config = {
         bg: {
           DEFAULT: '#151B1F',
           input: '#23272C',
+          'input-hover': '#2A3035',
         },
         text: {
           DEFAULT: '#E6E6E6',
@@ -26,6 +27,9 @@ const config: Config = {
           warning: '#F59E0B',
         },
         border: '#23272C',
+      },
+      fontFamily: {
+        'archivo-narrow': ['"Archivo Narrow"', 'sans-serif'],
       },
       fontSize: {
         xs: ['11px', { lineHeight: '1.4' }],
