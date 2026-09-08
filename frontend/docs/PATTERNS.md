@@ -1,23 +1,6 @@
-# Padrões e Contexto da Aplicação — Sistema Pix
+# Padrões — Sistema Pix
 
-## 1. Contexto do Produto
-
-**Sistema Pix** é uma aplicação web de transações financeiras via Pix.
-
-O produto permite ao usuário:
-
-- Visualizar saldo atual e limite utilizado
-- Realizar transferências (Enviar / Receber)
-- Agendar pagamentos
-- Consultar extrato de transações
-- Gerenciar chaves Pix
-- Configurar ajustes da conta
-
-A interface segue o padrão de aplicativos financeiros móveis (ex: Nubank, Inter), com foco em clareza, segurança visual e velocidade de acesso às ações mais usadas.
-
----
-
-## 2. Metodologia: Mobile First
+## 1. Metodologia: Mobile First
 
 Todo o desenvolvimento deve partir da experiência mobile e evoluir para telas maiores.
 
@@ -202,15 +185,20 @@ className="text-[#33AA6E]"
 className="hover:bg-[#23272C]"
 className="border-[#C86159]"
 
-// Classes de cores do Tailwind padrão — NUNCA usar
+
+```
+
+#### ✅ Correto — usar sempre classes padrões e se não tiver, usar os tokens do design system 
+
+```tsx
+// Classes de cores do Tailwind padrão
 className="text-green-500"
 className="bg-gray-900"
 className="text-red-400"
-```
 
-#### ✅ Correto — usar sempre os tokens do design system
+//OU
 
-```tsx
+// Tokens do design system 
 className="bg-bg-input-hover"
 className="text-brand-element"
 className="hover:bg-bg-input-hover"
@@ -282,5 +270,10 @@ Componente / Hook
 A URL base da API é configurada em `.env.local`:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_API_URL=http://localhost:3000
 ```
+```API
+swagger-ui/index.html#/
+```
+
+
