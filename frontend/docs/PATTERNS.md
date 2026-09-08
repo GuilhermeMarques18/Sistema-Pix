@@ -1,23 +1,6 @@
-# Padrões e Contexto da Aplicação — Sistema Pix
+# Padrões — Sistema Pix
 
-## 1. Contexto do Produto
-
-**Sistema Pix** é uma aplicação web de transações financeiras via Pix.
-
-O produto permite ao usuário:
-
-- Visualizar saldo atual e limite utilizado
-- Realizar transferências (Enviar / Receber)
-- Agendar pagamentos
-- Consultar extrato de transações
-- Gerenciar chaves Pix
-- Configurar ajustes da conta
-
-A interface segue o padrão de aplicativos financeiros móveis (ex: Nubank, Inter), com foco em clareza, segurança visual e velocidade de acesso às ações mais usadas.
-
----
-
-## 2. Metodologia: Mobile First
+## 1. Metodologia: Mobile First
 
 Todo o desenvolvimento deve partir da experiência mobile e evoluir para telas maiores.
 
@@ -189,15 +172,71 @@ Ao integrar com a API, substituir os mocks por chamadas nos `services/` da featu
 
 ## 10. Padrão de Estilo (Tailwind)
 
+### ⚠️ Regra obrigatória — Nunca usar cores hardcoded
+
+**Toda cor usada em qualquer componente deve ser um token do design system definido em `tailwind.config.ts`.**
+
+#### ❌ Proibido
+
+```tsx
+// Cores CSS arbitrárias no Tailwind — NUNCA fazer isso
+className="bg-[#2a3035]"
+className="text-[#33AA6E]"
+className="hover:bg-[#23272C]"
+className="border-[#C86159]"
+
+
+```
+
+#### ✅ Correto — usar sempre classes padrões e se não tiver, usar os tokens do design system 
+
+```tsx
+// Classes de cores do Tailwind padrão
+className="text-green-500"
+className="bg-gray-900"
+className="text-red-400"
+
+//OU
+
+// Tokens do design system 
+className="bg-bg-input-hover"
+className="text-brand-element"
+className="hover:bg-bg-input-hover"
+className="border-text-negative"
+```
+
+#### Quando a cor necessária não existe no design system
+
+1. Identificar o propósito semântico da cor (ex: "hover sobre input", "fundo de card elevado").
+2. Adicionar o token em `tailwind.config.ts` com nome semântico.
+3. Usar o novo token no componente.
+
+**Nunca usar `bg-[#hex]` como solução temporária** — adicionar o token primeiro.
+
+### Tokens disponíveis (`tailwind.config.ts`)
+
+| Token | Classe Tailwind | Valor |
+|---|---|---|
+| Brand logo | `text-brand-logo` / `bg-brand-logo` | `#32BCA9` |
+| Brand element | `text-brand-element` / `bg-brand-element` | `#33AA6E` |
+| Brand button | `bg-brand-button` | `#29925F` |
+| Background | `bg-bg` | `#151B1F` |
+| Input / Card | `bg-bg-input` | `#23272C` |
+| Input hover | `hover:bg-bg-input-hover` | `#2A3035` |
+| Border | `border-border` | `#23272C` |
+| Text principal | `text-text` | `#E6E6E6` |
+| Text secundário | `text-text-secondary` | `#9EA2A6` |
+| Text terciário | `text-text-tertiary` | `#4CB277` |
+| Text negativo | `text-text-negative` | `#C86159` |
+| Text warning | `text-text-warning` | `#F59E0B` |
+
 ### Classes utilitárias prioritárias
 
-- Cores sempre via tokens do design system (`text-text`, `bg-bg-input`, `text-brand-element`).
-- Nunca usar cores hardcoded como `text-green-500` ou `bg-gray-900`.
 - Bordas arredondadas padrão: `rounded-xl` para cards e botões de ação.
 
 ### Interatividade
 
-- Hover: `hover:bg-[#2a3035]` ou variação sutil da cor base.
+- Hover sobre elementos com `bg-bg-input`: usar `hover:bg-bg-input-hover`.
 - Active/press: `active:scale-95` para feedback tátil.
 - Transições: `transition-colors` e `transition-all duration-150`.
 - Focus visible: `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-logo`.
@@ -231,5 +270,10 @@ Componente / Hook
 A URL base da API é configurada em `.env.local`:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_API_URL=http://localhost:3000
 ```
+```API
+swagger-ui/index.html#/
+```
+
+

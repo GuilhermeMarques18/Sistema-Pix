@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useUnauthorized } from '@/app/shared/hooks';
 import { LoginPage } from '@/app/features/auth';
 import { DashboardPage } from '@/app/features/dashboard';
+import { ExtratoPage } from '@/app/features/extrato';
 import { InitPage } from '@/app/features/init';
 import { AppShellLayout } from '@/app/layout';
 
@@ -23,7 +24,7 @@ export function AppRoutes() {
       {/* Rotas com BottomNav — conteúdo fica no <Outlet> do AppShellLayout */}
       <Route element={<AppShellLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/extrato" element={<div className="p-8 text-text">Extrato</div>} />
+        <Route path="/extrato" element={<ExtratoPage />} />
         <Route path="/chaves" element={<div className="p-8 text-text">Chaves Pix</div>} />
         <Route path="/ajustes" element={<div className="p-8 text-text">Ajustes</div>} />
       </Route>
