@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useUnauthorized } from '@/app/shared/hooks';
 import { LoginPage } from '@/app/features/auth';
 import { DashboardPage } from '@/app/features/dashboard';
+import { InitPage } from '@/app/features/init';
 import { AppShellLayout } from '@/app/layout';
 
 /**
@@ -13,8 +14,8 @@ export function AppRoutes() {
 
   return (
     <Routes>
-      {/* Redireciona a raiz para o dashboard */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Tela inicial — splash com botões Entrar / Cadastre-se */}
+      <Route path="/" element={<InitPage />} />
 
       {/* Auth — sem BottomNav */}
       <Route path="/login" element={<LoginPage />} />
