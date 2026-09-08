@@ -4,6 +4,7 @@ import { LoginPage } from '@/app/features/auth';
 import { DashboardPage } from '@/app/features/dashboard';
 import { ExtratoPage } from '@/app/features/extrato';
 import { InitPage } from '@/app/features/init';
+import { RegisterPage } from '@/app/features/register';
 import { AppShellLayout } from '@/app/layout';
 
 /**
@@ -20,6 +21,7 @@ export function AppRoutes() {
 
       {/* Auth — sem BottomNav */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
       {/* Rotas com BottomNav — conteúdo fica no <Outlet> do AppShellLayout */}
       <Route element={<AppShellLayout />}>

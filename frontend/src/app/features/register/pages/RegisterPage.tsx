@@ -1,9 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from '@phosphor-icons/react';
+import { ArrowLeft, Eye, EyeSlash } from '@phosphor-icons/react';
 import { registerSchema, type RegisterFormData } from '../schemas/register.schema';
 import { useRegister } from '../hooks/useRegister';
 import { Button } from '@/app/shared/components/ui/button';
@@ -13,6 +14,8 @@ import { Label } from '@/app/shared/components/ui/label';
 export function RegisterPage() {
   const navigate = useNavigate();
   const { register: submitRegister, isLoading, error } = useRegister();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -109,7 +112,6 @@ export function RegisterPage() {
               onClick={() => setValue('tipoPessoa', 'FISICA', { shouldValidate: true })}
               className="flex items-center gap-2 text-sm text-text transition-opacity active:scale-95"
             >
-              {/* Radio visual */}
               <span
                 className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${
                   tipoPessoa === 'FISICA'
@@ -165,13 +167,26 @@ export function RegisterPage() {
           {/* Senha */}
           <div className="space-y-1.5">
             <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Crie uma senha"
-              autoComplete="new-password"
-              {...register('password')}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Crie uma senha"
+                autoComplete="new-password"
+                className="pr-10"
+                {...register('password')}
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary transition-colors hover:text-text"
+                onClick={() => setShowPassword((prev) => !prev)}
+              >
+                {showPassword
+                  ? <Eye size={18} weight="regular" />
+                  : <EyeSlash size={18} weight="regular" />}
+              </button>
+            </div>
             {errors.password && (
               <p className="text-xs text-text-negative">{errors.password.message}</p>
             )}
@@ -180,13 +195,26 @@ export function RegisterPage() {
           {/* Confirmação de senha */}
           <div className="space-y-1.5">
             <Label htmlFor="confirmPassword">Confirmação de senha</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirme a senha"
-              autoComplete="new-password"
-              {...register('confirmPassword')}
-            />
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                placeholder="Confirme a senha"
+                autoComplete="new-password"
+                className="pr-10"
+                {...register('confirmPassword')}
+              />
+              <button
+                type="button"
+                aria-label={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary transition-colors hover:text-text"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+              >
+                {showConfirmPassword
+                  ? <Eye size={18} weight="regular" />
+                  : <EyeSlash size={18} weight="regular" />}
+              </button>
+            </div>
             {errors.confirmPassword && (
               <p className="text-xs text-text-negative">{errors.confirmPassword.message}</p>
             )}
@@ -198,7 +226,7 @@ export function RegisterPage() {
           )}
 
           <Button type="submit" className="mt-2 w-full rounded-xl" disabled={isLoading}>
-            {isLoading ? 'Criando conta...' : 'Entrar'}
+            {isLoading ? 'Criando conta...' : 'Criar conta'}
           </Button>
         </form>
       </div>
