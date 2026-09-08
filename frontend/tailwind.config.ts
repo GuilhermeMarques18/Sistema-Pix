@@ -16,6 +16,7 @@ const config: Config = {
         },
         bg: {
           DEFAULT: '#151B1F',
+          card: '#1C2227',
           input: '#23272C',
           'input-hover': '#2A3035',
         },

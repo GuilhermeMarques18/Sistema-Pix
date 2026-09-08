@@ -9,14 +9,8 @@ import { passwordLoginSchema, type PasswordLoginFormData } from '../schemas/pass
 import { useLogin } from '../hooks/useLogin';
 import { Button, Input, Label, PixIcon } from '@/app/shared/components/ui';
 
-/** Dado mockado do usuário logado — substituir pela conta persistida no core/auth */
-const MOCK_USER = 'Geovana Veras';
-
 /**
  * Tela de login por senha — mobile-first.
- * Segue o mesmo padrão de container do AppShellLayout:
- *   wrapper externo → flex justify-center (centraliza em telas largas)
- *   coluna interna  → w-full max-w-md     (limita a 448 px, igual ao dashboard)
  */
 export function LoginPage() {
   const navigate = useNavigate();
@@ -32,7 +26,7 @@ export function LoginPage() {
   });
 
   function handleSubmitPassword(data: PasswordLoginFormData) {
-    login({ email: 'geovana@email.com', password: data.password });
+    login({ email: data.email, password: data.password });
   }
 
   return (
@@ -41,9 +35,9 @@ export function LoginPage() {
 
       {/* Coluna central — degradê e conteúdo ficam aqui */}
       <div
-        className="flex h-full w-full max-w-md flex-col"
+        className="flex items-center h-full w-full max-w-md flex-col"
         style={{
-          background: 'linear-gradient(180deg, #0C2318 0%, #131A1F 50%, #131A1F 100%)',
+          background: 'linear-gradient(180deg, #12372e 0%, #131A1F 50%, #131A1F 100%)',
         }}
       >
 
@@ -64,114 +58,131 @@ export function LoginPage() {
 
           {/* Saudação */}
           <h1 className="mb-2 text-[22px] font-bold leading-tight text-white">
-            Olá, {MOCK_USER}
+            Acesse sua conta
           </h1>
 
           {/* Trocar de conta */}
-          <button
-            type="button"
+          <h2
             className="text-sm text-text-secondary transition-colors hover:text-white active:scale-95"
-            onClick={() => navigate('/')}
           >
-            Acessar outra conta
-          </button>
+            Para fazer transferências
+          </h2>
         </div>
 
         {/* ── Card inferior de senha ── */}
-        <div className="w-full px-4 pb-10">
-          <div
-            className="rounded-3xl px-6 py-7"
-            style={{ backgroundColor: '#1C2227' }}
+
+        <div
+          className="rounded-t-3xl px-6 py-10 h-1/2 w-11/12 border-[1px] border-x-slate-600 bg-bg-card"
+        >
+          <h2 className="mb-6 text-[17px] font-bold text-white">
+            Entre na sua conta
+          </h2>
+
+          <form
+            onSubmit={handleSubmit(handleSubmitPassword)}
+            className="flex flex-col gap-4"
+            noValidate
           >
-            <h2 className="mb-6 text-[17px] font-bold text-white">
-              Entre na sua conta
-            </h2>
+            {/* Label + campo de e-mail */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email" className="text-sm font-medium text-white">
+                E-mail
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="seu@email.com"
+                className="h-12 w-full rounded-xl border-0 bg-bg-input text-base
+                             text-white placeholder:text-text-secondary
+                             focus:outline-none focus:ring-1 focus:ring-brand-logo"
+                {...register('email')}
+              />
+              {errors.email && (
+                <p className="text-xs text-text-negative">{errors.email.message}</p>
+              )}
+            </div>
 
-            <form
-              onSubmit={handleSubmit(handleSubmitPassword)}
-              className="flex flex-col gap-4"
-              noValidate
-            >
-              {/* Label + campo de senha */}
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="password" className="text-sm font-medium text-white">
-                  Senha
-                </Label>
+            {/* Label + campo de senha */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password" className="text-sm font-medium text-white">
+                Senha
+              </Label>
 
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    className="h-12 w-full rounded-xl border-0 bg-[#23272C] pr-12 text-base
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  className="h-12 w-full rounded-xl border-0 bg-bg-input pr-12 text-base
                                text-white placeholder:text-text-secondary
                                focus:outline-none focus:ring-1 focus:ring-brand-logo"
-                    {...register('password')}
-                  />
+                  {...register('password')}
+                />
 
-                  {/* Toggle de visibilidade */}
-                  <button
-                    type="button"
-                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary
-                               transition-colors hover:text-white"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                  >
-                    {showPassword
-                      ? <Eye size={20} weight="regular" />
-                      : <EyeSlash size={20} weight="regular" />}
-                  </button>
-                </div>
-
-                {errors.password && (
-                  <p className="text-xs text-text-negative">{errors.password.message}</p>
-                )}
-              </div>
-
-              {/* "Esqueceu sua senha?" — alinhado à direita */}
-              <div className="flex justify-end">
+                {/* Toggle de visibilidade */}
                 <button
                   type="button"
-                  className="flex items-center gap-0.5 text-sm text-brand-element
-                             transition-colors hover:underline active:scale-95"
-                  onClick={() => { /* TODO: navegar para recuperação de senha */ }}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary
+                               transition-colors hover:text-white"
+                  onClick={() => setShowPassword((prev) => !prev)}
                 >
-                  Esqueceu sua senha?
-                  <span aria-hidden="true" className="ml-0.5 text-brand-element">›</span>
+                  {showPassword
+                    ? <Eye size={20} weight="regular" />
+                    : <EyeSlash size={20} weight="regular" />}
                 </button>
               </div>
 
-              {/* Erro HTTP */}
-              {error && (
-                <p className="text-xs text-text-negative">{error}</p>
+              {errors.password && (
+                <p className="text-xs text-text-negative">{errors.password.message}</p>
               )}
+            </div>
 
-              {/* Botão Entrar */}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="mt-1 h-14 w-full rounded-2xl bg-brand-button text-[15px] font-semibold
+            {/* "Esqueceu sua senha?" — alinhado à direita */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="flex items-center gap-0.5 text-sm text-brand-element
+                             transition-colors hover:underline active:scale-95"
+                onClick={() => { /* TODO: navegar para recuperação de senha */ }}
+              >
+                Esqueceu sua senha?
+                <span aria-hidden="true" className="ml-0.5 text-brand-element">›</span>
+              </button>
+            </div>
+
+            {/* Erro HTTP */}
+            {error && (
+              <p className="text-xs text-text-negative">{error}</p>
+            )}
+
+            {/* Botão Entrar */}
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="mt-1 h-14 w-full rounded-2xl bg-brand-button text-[15px] font-semibold
                            text-white transition-all duration-150 hover:bg-brand-element
                            active:scale-[0.98] disabled:opacity-60"
-              >
-                {isLoading ? 'Entrando...' : 'Entrar'}
-              </Button>
+            >
+              {isLoading ? 'Entrando...' : 'Entrar'}
+            </Button>
 
-              {/* Link de cadastro */}
-              <p className="text-center text-sm text-text-secondary">
-                Não tem uma conta?{' '}
-                <button
-                  type="button"
-                  className="font-medium text-brand-element transition-colors
+            {/* Link de cadastro */}
+            <p className="text-center text-sm text-text-secondary">
+              Não tem uma conta?{' '}
+              <button
+                type="button"
+                className="font-medium text-brand-element transition-colors
                              hover:underline active:scale-95"
-                  onClick={() => navigate('/register')}
-                >
-                  Cadastre-se
-                </button>
-              </p>
-            </form>
-          </div>
+                onClick={() => navigate('/register')}
+              >
+                Cadastre-se
+              </button>
+            </p>
+          </form>
         </div>
+
 
       </div>
     </div>

@@ -4,8 +4,6 @@ import { Button, PixIcon } from '@/app/shared/components/ui';
 
 /**
  * Tela inicial (splash) — mobile-first.
- * Wrapper externo: fundo neutro (bg-bg), centraliza a coluna.
- * Coluna interna (max-w-md): contém imagem de fundo + gradiente + conteúdo.
  */
 export function InitPage() {
   const navigate = useNavigate();
@@ -31,14 +29,14 @@ export function InitPage() {
             className="absolute inset-0"
             style={{
               background:
-                'linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.08) 42%, rgba(0,0,0,0.72) 100%)',
+                'linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0, 0, 0, 0.02) 22%, rgba(0,0,0,0.30) 100%)',
             }}
           />
         </div>
 
         {/* Topo: slogan (esquerda) + logo (direita) */}
         <div className="relative z-10 flex items-start justify-between px-5 pt-10">
-          <h1 className="max-w-[200px] font-archivo-narrow text-3xl font-bold leading-[1.2] text-white">
+          <h1 className="font-archivo-narrow text-4xl font-bold leading-[1.2] text-white">
             Seu dinheiro,<br />
             com segurança<br />
             e praticidade
@@ -60,7 +58,7 @@ export function InitPage() {
           </Button>
 
           <Button
-            className="h-14 w-full rounded-2xl border border-white/30 bg-transparent
+            className="h-14 w-full rounded-2xl border border-white/40 bg-transparent
                        text-[15px] font-semibold text-white transition-all duration-150
                        hover:bg-white/10 active:scale-[0.98]"
             onClick={() => navigate('/register')}
@@ -73,5 +71,3 @@ export function InitPage() {
     </div>
   );
 }
-
-/* nada — PixLogoMark removido, usando PixIcon do shared */
