@@ -1,16 +1,14 @@
 package com.gc.sistem_pix.pix.controller;
 
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import com.gc.sistem_pix.pix.dto.PixExtractResponse;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.gc.sistem_pix.pix.dto.PixTransactionRequest;
 import com.gc.sistem_pix.pix.dto.PixTransactionResponse;
@@ -38,6 +36,16 @@ public class PixTransactionController {
     @ApiResponse(responseCode = "200", description = "Transações retornadas com sucesso")
     public ResponseEntity<List<PixTransactionResponse>> findAll() {
         return ResponseEntity.ok(pixTransactionService.findAll());
+    }
+
+    @GetMapping("/extrato")
+    public ResponseEntity<PixExtractResponse> gerarExtrato(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
+            @AuthenticationPrincipal UserModel authenticatedUser) {
+
+        PixExtractResponse extrato = pixTransactionService.gerarExtrato(authenticatedUser, dataInicio, dataFim);
+        return ResponseEntity.ok(extrato);
     }
 
     @GetMapping("/me")
