@@ -33,6 +33,7 @@ public class PixTransactionService {
     private final PixTransactionRepository pixTransactionRepository;
     private final AccountRepository accountRepository;
     private final PixKeyService pixKeyService;
+    private final PixNotificationService pixNotificationService;
 
     @Transactional
     public PixTransactionResponse create(PixTransactionRequest request, UserModel authenticatedUser) {
@@ -84,6 +85,9 @@ public class PixTransactionService {
                 .build();
 
         PixTransaction savedTransaction = pixTransactionRepository.save(transaction);
+
+        pixNotificationService.notifyDebit(originAccount.getUser(), savedTransaction);
+        pixNotificationService.notifyCredit(destinationAccount.getUser(), savedTransaction);
 
         return toResponse(savedTransaction);
     }
