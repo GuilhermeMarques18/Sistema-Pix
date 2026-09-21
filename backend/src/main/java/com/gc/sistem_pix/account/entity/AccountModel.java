@@ -23,8 +23,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -67,12 +67,12 @@ public class AccountModel {
     @NotNull
     @Column(name = "limite_transacoes", nullable = false)
     @Builder.Default
-    private Integer transactionLimit = 0;
+    private Integer transactionLimit = 10;
 
     @NotNull
     @Column(name = "limite_pix", nullable = false)
     @Builder.Default
-    private Integer pixLimit = 0;
+    private Integer pixLimit = 1000;
 
     @CreationTimestamp
     @Column(name = "criado_em", nullable = false, updatable = false)
@@ -84,6 +84,14 @@ public class AccountModel {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    public void block() {
+        this.status = AccountStatus.BLOQUEADA;
+    }
+
+    public void unblock() {
+        this.status = AccountStatus.DESBLOQUEADA;
+    }
 
     public void credit(BigDecimal value) {
         validatePositiveValue(value);

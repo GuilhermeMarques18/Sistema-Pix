@@ -7,18 +7,20 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
-import com.gc.sistem_pix.pix.dto.PixExtractItemResponse;
-import com.gc.sistem_pix.pix.dto.PixExtractResponse;
-import com.gc.sistem_pix.pix.enums.TipoOperacaoPix;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gc.sistem_pix.account.entity.AccountModel;
+import com.gc.sistem_pix.account.enums.AccountStatus;
+import com.gc.sistem_pix.account.exception.AccountBlockedException;
 import com.gc.sistem_pix.account.repository.AccountRepository;
+import com.gc.sistem_pix.pix.dto.PixExtractItemResponse;
+import com.gc.sistem_pix.pix.dto.PixExtractResponse;
 import com.gc.sistem_pix.pix.dto.PixTransactionRequest;
 import com.gc.sistem_pix.pix.dto.PixTransactionResponse;
 import com.gc.sistem_pix.pix.entity.PixKey;
 import com.gc.sistem_pix.pix.entity.PixTransaction;
+import com.gc.sistem_pix.pix.enums.TipoOperacaoPix;
 import com.gc.sistem_pix.pix.exception.InvalidPixTransactionException;
 import com.gc.sistem_pix.pix.repository.PixTransactionRepository;
 import com.gc.sistem_pix.user.entity.UserModel;
@@ -64,12 +66,20 @@ public class PixTransactionService {
         }
 
         if (!originAccount.isAvailableForPix()) {
+            if (originAccount.getStatus() == AccountStatus.BLOQUEADA) {
+                throw new AccountBlockedException("Conta de origem bloqueada por suspeita de fraude");
+            }
             throw new InvalidPixTransactionException("Conta de origem indisponível para Pix");
         }
 
         if (!destinationAccount.isAvailableForPix()) {
+            if (destinationAccount.getStatus() == AccountStatus.BLOQUEADA) {
+                throw new AccountBlockedException("Conta de destino bloqueada por suspeita de fraude");
+            }
             throw new InvalidPixTransactionException("Conta de destino indisponível para Pix");
         }
+
+        validateFraudLimits(originAccount, request.valor());
 
         originAccount.debit(request.valor());
         destinationAccount.credit(request.valor());
@@ -141,6 +151,33 @@ public class PixTransactionService {
             throw new InvalidPixTransactionException("Valor da transação deve ser maior que zero");
         }
 
+    }
+
+    private void validateFraudLimits(AccountModel originAccount, BigDecimal valor) {
+        if (originAccount.getPixLimit() != null
+                && originAccount.getPixLimit() > 0
+                && valor.compareTo(BigDecimal.valueOf(originAccount.getPixLimit())) > 0) {
+            originAccount.block();
+            accountRepository.save(originAccount);
+            throw new AccountBlockedException(String.format(
+                    "Suspeita de fraude: valor da transação (R$ %s) excede o limite Pix permitido (R$ %s)",
+                    valor, originAccount.getPixLimit()));
+        }
+
+        if (originAccount.getTransactionLimit() != null && originAccount.getTransactionLimit() > 0) {
+            LocalDateTime inicioDoDia = LocalDate.now().atStartOfDay();
+            LocalDateTime fimDoDia = LocalDate.now().atTime(LocalTime.MAX);
+            long transacoesHoje = pixTransactionRepository
+                    .countByContaOrigemIdAndDataHoraBetween(originAccount.getId(), inicioDoDia, fimDoDia);
+
+            if (transacoesHoje >= originAccount.getTransactionLimit()) {
+                originAccount.block();
+                accountRepository.save(originAccount);
+                throw new AccountBlockedException(String.format(
+                        "Suspeita de fraude: limite diário de transações (%d) atingido",
+                        originAccount.getTransactionLimit()));
+            }
+        }
     }
 
     private PixTransactionResponse toResponse(PixTransaction transaction) {

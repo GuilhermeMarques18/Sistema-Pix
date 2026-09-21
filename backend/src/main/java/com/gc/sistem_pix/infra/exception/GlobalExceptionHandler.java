@@ -1,8 +1,9 @@
 package com.gc.sistem_pix.infra.exception;
 
-import com.gc.sistem_pix.pix.exception.InvalidPixTransactionException;
-import com.gc.sistem_pix.pix.exception.InvalidPixKeyException;
+import com.gc.sistem_pix.account.exception.AccountBlockedException;
 import com.gc.sistem_pix.account.exception.InsufficientBalanceException;
+import com.gc.sistem_pix.pix.exception.InvalidPixKeyException;
+import com.gc.sistem_pix.pix.exception.InvalidPixTransactionException;
 import com.gc.sistem_pix.user.exception.DuplicateResourceException;
 import com.gc.sistem_pix.user.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +18,13 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AccountBlockedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAccountBlocked(
+            AccountBlockedException exception,
+            HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage(), request);
+    }
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiErrorResponse> handleDuplicateResource(

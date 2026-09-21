@@ -1,26 +1,29 @@
 package com.gc.sistem_pix.pix.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.gc.sistem_pix.account.entity.AccountModel;
 import com.gc.sistem_pix.account.enums.AccountStatus;
+import com.gc.sistem_pix.account.exception.AccountBlockedException;
 import com.gc.sistem_pix.account.repository.AccountRepository;
 import com.gc.sistem_pix.pix.dto.PixTransactionRequest;
 import com.gc.sistem_pix.pix.dto.PixTransactionResponse;
@@ -43,6 +46,9 @@ class PixTransactionServiceTest {
     @Mock
     private PixKeyService pixKeyService;
 
+    @Mock
+    private PixNotificationService pixNotificationService;
+
     @InjectMocks
     private PixTransactionService pixTransactionService;
 
@@ -55,7 +61,8 @@ class PixTransactionServiceTest {
         LocalDateTime dataHora = LocalDateTime.now();
         String chavePix = "destino@email.com";
 
-        UserModel authenticatedUser = UserModel.builder().id(usuarioId).build();
+        UserModel authenticatedUser = UserModel.builder().id(usuarioId).name("Usuario Origem").build();
+        UserModel destinationUser = UserModel.builder().id(UUID.randomUUID()).name("Usuario Destino").build();
         PixTransactionRequest request = new PixTransactionRequest(
                 chavePix,
                 new BigDecimal("100.50"),
@@ -63,11 +70,15 @@ class PixTransactionServiceTest {
 
         AccountModel originAccount = AccountModel.builder()
                 .id(contaOrigemId)
+                .user(authenticatedUser)
                 .balance(new BigDecimal("200.00"))
                 .status(AccountStatus.DESBLOQUEADA)
+                .pixLimit(1000)
+                .transactionLimit(10)
                 .build();
         AccountModel destinationAccount = AccountModel.builder()
                 .id(contaDestinoId)
+                .user(destinationUser)
                 .balance(new BigDecimal("50.00"))
                 .status(AccountStatus.DESBLOQUEADA)
                 .build();
@@ -83,6 +94,8 @@ class PixTransactionServiceTest {
                 .thenReturn(Optional.of(originAccount));
         when(accountRepository.findByIdForUpdate(contaDestinoId))
                 .thenReturn(Optional.of(destinationAccount));
+        when(pixTransactionRepository.countByContaOrigemIdAndDataHoraBetween(any(), any(), any()))
+                .thenReturn(0L);
 
         PixTransaction savedTransaction = PixTransaction.builder()
                 .idTransacao(idTransacao)
@@ -118,6 +131,192 @@ class PixTransactionServiceTest {
         verify(accountRepository).save(originAccount);
         verify(accountRepository).save(destinationAccount);
         verify(pixKeyService).findByKeyForTransfer(chavePix);
+        verify(pixNotificationService).notifyDebit(authenticatedUser, savedTransaction);
+        verify(pixNotificationService).notifyCredit(destinationUser, savedTransaction);
+    }
+
+    @Test
+    void deveBloquearContaQuandoValorUltrapassarLimitePix() {
+        UUID usuarioId = UUID.randomUUID();
+        UUID contaOrigemId = UUID.randomUUID();
+        UUID contaDestinoId = UUID.randomUUID();
+        String chavePix = "destino@email.com";
+
+        UserModel authenticatedUser = UserModel.builder().id(usuarioId).build();
+        PixTransactionRequest request = new PixTransactionRequest(
+                chavePix,
+                new BigDecimal("1500.00"),
+                "Transferência alta");
+
+        AccountModel originAccount = AccountModel.builder()
+                .id(contaOrigemId)
+                .balance(new BigDecimal("2000.00"))
+                .status(AccountStatus.DESBLOQUEADA)
+                .pixLimit(1000)
+                .transactionLimit(10)
+                .build();
+        AccountModel destinationAccount = AccountModel.builder()
+                .id(contaDestinoId)
+                .balance(new BigDecimal("50.00"))
+                .status(AccountStatus.DESBLOQUEADA)
+                .build();
+        PixKey destinationKey = PixKey.builder()
+                .account(destinationAccount)
+                .type(PixKeyType.EMAIL)
+                .key(chavePix)
+                .build();
+
+        when(accountRepository.findByUserId(usuarioId)).thenReturn(Optional.of(originAccount));
+        when(pixKeyService.findByKeyForTransfer(chavePix)).thenReturn(destinationKey);
+        when(accountRepository.findByIdForUpdate(contaOrigemId)).thenReturn(Optional.of(originAccount));
+        when(accountRepository.findByIdForUpdate(contaDestinoId)).thenReturn(Optional.of(destinationAccount));
+
+        AccountBlockedException exception = assertThrows(
+                AccountBlockedException.class,
+                () -> pixTransactionService.create(request, authenticatedUser));
+
+        assertTrue(exception.getMessage().contains("Suspeita de fraude: valor da transação"));
+        assertEquals(AccountStatus.BLOQUEADA, originAccount.getStatus());
+
+        verify(accountRepository).save(originAccount);
+        verify(pixTransactionRepository, never()).save(any());
+    }
+
+    @Test
+    void deveBloquearContaQuandoQuantidadeTransacoesUltrapassarLimite() {
+        UUID usuarioId = UUID.randomUUID();
+        UUID contaOrigemId = UUID.randomUUID();
+        UUID contaDestinoId = UUID.randomUUID();
+        String chavePix = "destino@email.com";
+
+        UserModel authenticatedUser = UserModel.builder().id(usuarioId).build();
+        PixTransactionRequest request = new PixTransactionRequest(
+                chavePix,
+                new BigDecimal("50.00"),
+                "Transferência");
+
+        AccountModel originAccount = AccountModel.builder()
+                .id(contaOrigemId)
+                .balance(new BigDecimal("500.00"))
+                .status(AccountStatus.DESBLOQUEADA)
+                .pixLimit(1000)
+                .transactionLimit(10)
+                .build();
+        AccountModel destinationAccount = AccountModel.builder()
+                .id(contaDestinoId)
+                .balance(new BigDecimal("50.00"))
+                .status(AccountStatus.DESBLOQUEADA)
+                .build();
+        PixKey destinationKey = PixKey.builder()
+                .account(destinationAccount)
+                .type(PixKeyType.EMAIL)
+                .key(chavePix)
+                .build();
+
+        when(accountRepository.findByUserId(usuarioId)).thenReturn(Optional.of(originAccount));
+        when(pixKeyService.findByKeyForTransfer(chavePix)).thenReturn(destinationKey);
+        when(accountRepository.findByIdForUpdate(contaOrigemId)).thenReturn(Optional.of(originAccount));
+        when(accountRepository.findByIdForUpdate(contaDestinoId)).thenReturn(Optional.of(destinationAccount));
+        when(pixTransactionRepository.countByContaOrigemIdAndDataHoraBetween(any(), any(), any()))
+                .thenReturn(10L); 
+
+        AccountBlockedException exception = assertThrows(
+                AccountBlockedException.class,
+                () -> pixTransactionService.create(request, authenticatedUser));
+
+        assertTrue(exception.getMessage().contains("Suspeita de fraude: limite diário de transações"));
+        assertEquals(AccountStatus.BLOQUEADA, originAccount.getStatus());
+
+        verify(accountRepository).save(originAccount);
+        verify(pixTransactionRepository, never()).save(any());
+    }
+
+    @Test
+    void naoDevePermitirTransferenciaSeContaOrigemJaEstiverBloqueada() {
+        UUID usuarioId = UUID.randomUUID();
+        UUID contaOrigemId = UUID.randomUUID();
+        UUID contaDestinoId = UUID.randomUUID();
+        String chavePix = "destino@email.com";
+
+        UserModel authenticatedUser = UserModel.builder().id(usuarioId).build();
+        PixTransactionRequest request = new PixTransactionRequest(
+                chavePix,
+                new BigDecimal("50.00"),
+                "Transferência");
+
+        AccountModel originAccount = AccountModel.builder()
+                .id(contaOrigemId)
+                .balance(new BigDecimal("500.00"))
+                .status(AccountStatus.BLOQUEADA)
+                .pixLimit(1000)
+                .transactionLimit(10)
+                .build();
+        AccountModel destinationAccount = AccountModel.builder()
+                .id(contaDestinoId)
+                .balance(new BigDecimal("50.00"))
+                .status(AccountStatus.DESBLOQUEADA)
+                .build();
+        PixKey destinationKey = PixKey.builder()
+                .account(destinationAccount)
+                .type(PixKeyType.EMAIL)
+                .key(chavePix)
+                .build();
+
+        when(accountRepository.findByUserId(usuarioId)).thenReturn(Optional.of(originAccount));
+        when(pixKeyService.findByKeyForTransfer(chavePix)).thenReturn(destinationKey);
+        when(accountRepository.findByIdForUpdate(contaOrigemId)).thenReturn(Optional.of(originAccount));
+        when(accountRepository.findByIdForUpdate(contaDestinoId)).thenReturn(Optional.of(destinationAccount));
+
+        AccountBlockedException exception = assertThrows(
+                AccountBlockedException.class,
+                () -> pixTransactionService.create(request, authenticatedUser));
+
+        assertTrue(exception.getMessage().contains("Conta de origem bloqueada por suspeita de fraude"));
+        verify(pixTransactionRepository, never()).save(any());
+    }
+
+    @Test
+    void naoDevePermitirTransferenciaSeContaDestinoEstiverBloqueada() {
+        UUID usuarioId = UUID.randomUUID();
+        UUID contaOrigemId = UUID.randomUUID();
+        UUID contaDestinoId = UUID.randomUUID();
+        String chavePix = "destino@email.com";
+
+        UserModel authenticatedUser = UserModel.builder().id(usuarioId).build();
+        PixTransactionRequest request = new PixTransactionRequest(
+                chavePix,
+                new BigDecimal("50.00"),
+                "Transferência");
+
+        AccountModel originAccount = AccountModel.builder()
+                .id(contaOrigemId)
+                .balance(new BigDecimal("500.00"))
+                .status(AccountStatus.DESBLOQUEADA)
+                .pixLimit(1000)
+                .transactionLimit(10)
+                .build();
+        AccountModel destinationAccount = AccountModel.builder()
+                .id(contaDestinoId)
+                .balance(new BigDecimal("50.00"))
+                .status(AccountStatus.BLOQUEADA)
+                .build();
+        PixKey destinationKey = PixKey.builder()
+                .account(destinationAccount)
+                .type(PixKeyType.EMAIL)
+                .key(chavePix)
+                .build();
+
+        when(accountRepository.findByUserId(usuarioId)).thenReturn(Optional.of(originAccount));
+        when(pixKeyService.findByKeyForTransfer(chavePix)).thenReturn(destinationKey);
+        when(accountRepository.findByIdForUpdate(contaOrigemId)).thenReturn(Optional.of(originAccount));
+        when(accountRepository.findByIdForUpdate(contaDestinoId)).thenReturn(Optional.of(destinationAccount));
+
+        AccountBlockedException exception = assertThrows(
+                AccountBlockedException.class,
+                () -> pixTransactionService.create(request, authenticatedUser));
+
+        assertTrue(exception.getMessage().contains("Conta de destino bloqueada por suspeita de fraude"));
+        verify(pixTransactionRepository, never()).save(any());
     }
 
     @Test

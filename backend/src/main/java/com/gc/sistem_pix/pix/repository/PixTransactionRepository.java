@@ -1,14 +1,14 @@
 package com.gc.sistem_pix.pix.repository;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import com.gc.sistem_pix.pix.entity.PixTransaction;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.gc.sistem_pix.pix.entity.PixTransaction;
 
 public interface PixTransactionRepository extends JpaRepository<PixTransaction, UUID> {
 
@@ -28,4 +28,9 @@ public interface PixTransactionRepository extends JpaRepository<PixTransaction, 
             @Param("contaId") UUID contaId,
             @Param("inicio") LocalDateTime inicio,
             @Param("fim") LocalDateTime fim);
+
+    long countByContaOrigemIdAndDataHoraBetween(
+            UUID contaOrigemId,
+            LocalDateTime inicio,
+            LocalDateTime fim);
 }
