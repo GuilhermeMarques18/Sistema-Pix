@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gc.sistem_pix.account.dto.AccountResponseDTO;
+import com.gc.sistem_pix.account.dto.AccountUnblockRequestDTO;
 import com.gc.sistem_pix.account.dto.AccountUpdateDTO;
 import com.gc.sistem_pix.account.service.AccountService;
 import com.gc.sistem_pix.user.entity.UserModel;
@@ -73,6 +74,34 @@ public class AccountController {
             @RequestBody @Valid AccountUpdateDTO dto) {
 
         return ResponseEntity.ok(accountService.updateOwn(authenticatedUser.getId(), dto));
+    }
+
+    @PatchMapping("/{id}/block")
+    @Operation(summary = "Bloqueia uma conta bancária por suspeita de fraude", tags = {"Contas bancárias"})
+    @ApiResponse(responseCode = "200", description = "Conta bloqueada com sucesso")
+    public ResponseEntity<AccountResponseDTO> block(
+            @PathVariable UUID id) {
+
+        return ResponseEntity.ok(accountService.blockAccount(id));
+    }
+
+    @PatchMapping("/me/unblock")
+    @Operation(summary = "Desbloqueia a própria conta bancária mediante confirmação de senha", tags = {"Contas bancárias"})
+    @ApiResponse(responseCode = "200", description = "Conta desbloqueada com sucesso")
+    public ResponseEntity<AccountResponseDTO> unblockOwn(
+            @AuthenticationPrincipal UserModel authenticatedUser,
+            @RequestBody @Valid AccountUnblockRequestDTO dto) {
+
+        return ResponseEntity.ok(accountService.unblockOwn(authenticatedUser.getId(), dto));
+    }
+
+    @PatchMapping("/{id}/unblock")
+    @Operation(summary = "Desbloqueia uma conta bancária", tags = {"Contas bancárias"})
+    @ApiResponse(responseCode = "200", description = "Conta desbloqueada com sucesso")
+    public ResponseEntity<AccountResponseDTO> unblock(
+            @PathVariable UUID id) {
+
+        return ResponseEntity.ok(accountService.unblockAccount(id));
     }
 
     @DeleteMapping("/{id}")

@@ -4,11 +4,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gc.sistem_pix.account.dto.AccountRequestDTO;
 import com.gc.sistem_pix.account.dto.AccountResponseDTO;
+import com.gc.sistem_pix.account.dto.AccountUnblockRequestDTO;
 import com.gc.sistem_pix.account.dto.AccountUpdateDTO;
 import com.gc.sistem_pix.account.entity.AccountModel;
 import com.gc.sistem_pix.account.enums.AccountStatus;
@@ -31,6 +33,7 @@ public class AccountService {
     private final UserRepository userRepository;
     private final PessoaFisicaRepository pessoaFisicaRepository;
     private final PessoaJuridicaRepository pessoaJuridicaRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public AccountResponseDTO createAccount(AccountRequestDTO dto) {
@@ -58,8 +61,51 @@ public class AccountService {
                 .user(user)
                 .status(AccountStatus.DESBLOQUEADA)
                 .type(resolveAccountType(user.getId()))
+                .transactionLimit(10)
+                .pixLimit(1000)
                 .build();
 
+        return toResponseDTO(accountRepository.save(account));
+    }
+
+    @Transactional
+    public AccountResponseDTO blockAccount(UUID accountId) {
+        AccountModel account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada"));
+
+        account.block();
+        return toResponseDTO(accountRepository.save(account));
+    }
+
+    @Transactional
+    public AccountResponseDTO unblockAccount(UUID accountId) {
+        AccountModel account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada"));
+
+        account.unblock();
+        return toResponseDTO(accountRepository.save(account));
+    }
+
+    @Transactional
+    public AccountResponseDTO unblockOwn(UUID userId, AccountUnblockRequestDTO dto) {
+        if (dto == null || dto.password() == null || dto.confirmPassword() == null) {
+            throw new IllegalArgumentException("Senha e confirmação de senha são obrigatórias");
+        }
+
+        if (!dto.password().equals(dto.confirmPassword())) {
+            throw new IllegalArgumentException("A confirmação da senha não confere com a senha informada");
+        }
+
+        AccountModel account = accountRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Conta não encontrada para este usuário"));
+
+        UserModel user = account.getUser();
+        if (!passwordEncoder.matches(dto.password(), user.getPassword())) {
+            throw new IllegalArgumentException("Senha de login incorreta");
+        }
+
+        account.unblock();
         return toResponseDTO(accountRepository.save(account));
     }
 
