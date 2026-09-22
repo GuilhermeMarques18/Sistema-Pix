@@ -30,7 +30,7 @@ export function QuickActions() {
             key={label}
             onClick={onClick}
             className="flex flex-col items-center gap-2 rounded-xl bg-bg-input p-3 text-brand-element
-              hover:bg-[#2a3035] active:scale-95 transition-all duration-150
+              hover:bg-bg-input-hover active:scale-95 transition-all duration-150
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-logo"
             aria-label={label}
           >

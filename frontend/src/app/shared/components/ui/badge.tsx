@@ -8,7 +8,7 @@ const badgeVariants = cva(
     variants: {
       variant: {
         success: 'bg-brand-element/15 text-brand-element',
-        warning: 'bg-amber-500/15 text-amber-400',
+        warning: 'bg-text-warning/15 text-text-warning',
         neutral: 'bg-bg-input text-text-secondary',
       },
     },

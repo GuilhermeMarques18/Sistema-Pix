@@ -1,6 +1,9 @@
 package com.gc.sistem_pix.pix.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -8,11 +11,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gc.sistem_pix.account.entity.AccountModel;
+import com.gc.sistem_pix.account.enums.AccountStatus;
+import com.gc.sistem_pix.account.exception.AccountBlockedException;
 import com.gc.sistem_pix.account.repository.AccountRepository;
+import com.gc.sistem_pix.pix.dto.PixExtractItemResponse;
+import com.gc.sistem_pix.pix.dto.PixExtractResponse;
 import com.gc.sistem_pix.pix.dto.PixTransactionRequest;
 import com.gc.sistem_pix.pix.dto.PixTransactionResponse;
 import com.gc.sistem_pix.pix.entity.PixKey;
 import com.gc.sistem_pix.pix.entity.PixTransaction;
+import com.gc.sistem_pix.pix.enums.TipoOperacaoPix;
 import com.gc.sistem_pix.pix.exception.InvalidPixTransactionException;
 import com.gc.sistem_pix.pix.repository.PixTransactionRepository;
 import com.gc.sistem_pix.user.entity.UserModel;
@@ -27,6 +35,7 @@ public class PixTransactionService {
     private final PixTransactionRepository pixTransactionRepository;
     private final AccountRepository accountRepository;
     private final PixKeyService pixKeyService;
+    private final PixNotificationService pixNotificationService;
 
     @Transactional
     public PixTransactionResponse create(PixTransactionRequest request, UserModel authenticatedUser) {
@@ -57,12 +66,20 @@ public class PixTransactionService {
         }
 
         if (!originAccount.isAvailableForPix()) {
+            if (originAccount.getStatus() == AccountStatus.BLOQUEADA) {
+                throw new AccountBlockedException("Conta de origem bloqueada por suspeita de fraude");
+            }
             throw new InvalidPixTransactionException("Conta de origem indisponível para Pix");
         }
 
         if (!destinationAccount.isAvailableForPix()) {
+            if (destinationAccount.getStatus() == AccountStatus.BLOQUEADA) {
+                throw new AccountBlockedException("Conta de destino bloqueada por suspeita de fraude");
+            }
             throw new InvalidPixTransactionException("Conta de destino indisponível para Pix");
         }
+
+        validateFraudLimits(originAccount, request.valor());
 
         originAccount.debit(request.valor());
         destinationAccount.credit(request.valor());
@@ -78,6 +95,9 @@ public class PixTransactionService {
                 .build();
 
         PixTransaction savedTransaction = pixTransactionRepository.save(transaction);
+
+        pixNotificationService.notifyDebit(originAccount.getUser(), savedTransaction);
+        pixNotificationService.notifyCredit(destinationAccount.getUser(), savedTransaction);
 
         return toResponse(savedTransaction);
     }
@@ -133,6 +153,33 @@ public class PixTransactionService {
 
     }
 
+    private void validateFraudLimits(AccountModel originAccount, BigDecimal valor) {
+        if (originAccount.getPixLimit() != null
+                && originAccount.getPixLimit() > 0
+                && valor.compareTo(BigDecimal.valueOf(originAccount.getPixLimit())) > 0) {
+            originAccount.block();
+            accountRepository.save(originAccount);
+            throw new AccountBlockedException(String.format(
+                    "Suspeita de fraude: valor da transação (R$ %s) excede o limite Pix permitido (R$ %s)",
+                    valor, originAccount.getPixLimit()));
+        }
+
+        if (originAccount.getTransactionLimit() != null && originAccount.getTransactionLimit() > 0) {
+            LocalDateTime inicioDoDia = LocalDate.now().atStartOfDay();
+            LocalDateTime fimDoDia = LocalDate.now().atTime(LocalTime.MAX);
+            long transacoesHoje = pixTransactionRepository
+                    .countByContaOrigemIdAndDataHoraBetween(originAccount.getId(), inicioDoDia, fimDoDia);
+
+            if (transacoesHoje >= originAccount.getTransactionLimit()) {
+                originAccount.block();
+                accountRepository.save(originAccount);
+                throw new AccountBlockedException(String.format(
+                        "Suspeita de fraude: limite diário de transações (%d) atingido",
+                        originAccount.getTransactionLimit()));
+            }
+        }
+    }
+
     private PixTransactionResponse toResponse(PixTransaction transaction) {
         return new PixTransactionResponse(
                 transaction.getIdTransacao(),
@@ -141,5 +188,66 @@ public class PixTransactionService {
                 transaction.getDescricao(),
                 transaction.getValor(),
                 transaction.getDataHora());
+    }
+
+    @Transactional(readOnly = true)
+    public PixExtractResponse gerarExtrato(UserModel authenticatedUser, LocalDate dataInicio, LocalDate dataFim) {
+        if (authenticatedUser == null || authenticatedUser.getId() == null) {
+            throw new InvalidPixTransactionException("Usuário autenticado é obrigatório");
+        }
+
+        AccountModel account = accountRepository.findByUserId(authenticatedUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Conta bancária não encontrada para o usuário autenticado"));
+
+        LocalDateTime inicio = resolveInicioPeriodo(dataInicio);
+        LocalDateTime fim = resolveFimPeriodo(dataFim);
+
+        if (inicio.isAfter(fim)) {
+            throw new InvalidPixTransactionException("A data inicial não pode ser posterior à data final");
+        }
+
+        List<PixTransaction> transacoes = pixTransactionRepository
+                .findAllByContaIdAndPeriodo(account.getId(), inicio, fim);
+
+        List<PixExtractItemResponse> itens = transacoes.stream()
+                .map(transacao -> toExtractItem(transacao, account.getId()))
+                .toList();
+
+        BigDecimal totalEntradas = somarPorTipo(itens, TipoOperacaoPix.ENTRADA);
+        BigDecimal totalSaidas = somarPorTipo(itens, TipoOperacaoPix.SAIDA);
+
+        return new PixExtractResponse(inicio, fim, totalEntradas, totalSaidas, itens);
+    }
+
+    private LocalDateTime resolveInicioPeriodo(LocalDate dataInicio) {
+        // Sem data informada: extrato completo (sem limite inferior relevante)
+        return dataInicio != null ? dataInicio.atStartOfDay() : LocalDateTime.of(1970, 1, 1, 0, 0);
+    }
+
+    private LocalDateTime resolveFimPeriodo(LocalDate dataFim) {
+        LocalDate referencia = dataFim != null ? dataFim : LocalDate.now();
+        return LocalDateTime.of(referencia, LocalTime.MAX);
+    }
+
+    private PixExtractItemResponse toExtractItem(PixTransaction transacao, UUID contaId) {
+        boolean isOrigem = transacao.getContaOrigemId().equals(contaId);
+        TipoOperacaoPix tipo = isOrigem ? TipoOperacaoPix.SAIDA : TipoOperacaoPix.ENTRADA;
+        UUID contraparte = isOrigem ? transacao.getContaDestinoId() : transacao.getContaOrigemId();
+
+        return new PixExtractItemResponse(
+                transacao.getIdTransacao(),
+                transacao.getDataHora(),
+                tipo,
+                transacao.getValor(),
+                transacao.getDescricao(),
+                contraparte);
+    }
+
+    private BigDecimal somarPorTipo(List<PixExtractItemResponse> itens, TipoOperacaoPix tipo) {
+        return itens.stream()
+                .filter(item -> item.tipo() == tipo)
+                .map(PixExtractItemResponse::valor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

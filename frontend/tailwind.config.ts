@@ -16,15 +16,21 @@ const config: Config = {
         },
         bg: {
           DEFAULT: '#151B1F',
+          card: '#1C2227',
           input: '#23272C',
+          'input-hover': '#2A3035',
         },
         text: {
           DEFAULT: '#E6E6E6',
           secondary: '#9EA2A6',
           tertiary: '#4CB277',
           negative: '#C86159',
+          warning: '#F59E0B',
         },
         border: '#23272C',
+      },
+      fontFamily: {
+        'archivo-narrow': ['"Archivo Narrow"', 'sans-serif'],
       },
       fontSize: {
         xs: ['11px', { lineHeight: '1.4' }],

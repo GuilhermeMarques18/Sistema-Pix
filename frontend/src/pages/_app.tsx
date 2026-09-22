@@ -1,5 +1,6 @@
 import type { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
+import type { ComponentType } from 'react';
 import '@/assets/styles/globals.css';
 
 /**
@@ -9,8 +10,8 @@ import '@/assets/styles/globals.css';
 const ClientApp = dynamic(
   () => import('@/app/core/ClientApp').then((mod) => mod.ClientApp),
   { ssr: false }
-);
+) as ComponentType<AppProps>;
 
-export default function App({ Component, pageProps }: AppProps) {
-  return <ClientApp Component={Component} pageProps={pageProps} />;
+export default function App({ Component, pageProps, router }: AppProps) {
+  return <ClientApp Component={Component} pageProps={pageProps} router={router} />;
 }
