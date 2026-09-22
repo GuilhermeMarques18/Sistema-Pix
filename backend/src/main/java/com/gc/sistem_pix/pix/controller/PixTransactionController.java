@@ -56,6 +56,28 @@ public class PixTransactionController {
         return ResponseEntity.ok(extrato);
     }
 
+  
+    @GetMapping("/history")
+@Operation(
+        summary = "Retorna o histórico de transações Pix do usuário autenticado",
+        tags = { "Transações Pix" }
+)
+@ApiResponse(
+        responseCode = "200",
+        description = "Histórico retornado com sucesso"
+)
+public ResponseEntity<PixExtractResponse> getTransactionHistory(
+        @AuthenticationPrincipal UserModel authenticatedUser) {
+
+    PixExtractResponse history = pixTransactionService.gerarExtrato(
+            authenticatedUser,
+            null,
+            null
+    );
+
+    return ResponseEntity.ok(history);
+}
+
     @GetMapping("/me")
     @Operation(summary = "Lista as próprias transações Pix", tags = { "Transações Pix" })
     @ApiResponse(responseCode = "200", description = "Transações retornadas com sucesso")
