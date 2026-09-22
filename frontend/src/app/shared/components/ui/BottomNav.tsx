@@ -107,7 +107,7 @@ const navItems: NavItem[] = [
   },
   {
     label: "Chaves",
-    path: "/chaves",
+    path: "/keys",
     icon: (active) =>
       active ? <PixFillIcon size={24} /> : <PixRegularIcon size={24} />,
   },
