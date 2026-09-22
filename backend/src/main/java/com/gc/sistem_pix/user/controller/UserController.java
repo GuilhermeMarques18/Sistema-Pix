@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -66,24 +67,30 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Busca um usuário por ID", tags = {"Usuários"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @Operation(summary = "Busca um usuário por ID (Exclusivo ADMIN/OWNER)", tags = {"Administração do Sistema"})
     @ApiResponse(responseCode = "200", description = "Usuário encontrado")
+    @ApiResponse(responseCode = "403", description = "Acesso negado - requer papel de ADMIN ou OWNER")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<UserResponseDTO> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(userService.searchID(id));
     }
 
     @GetMapping
-    @Operation(summary = "Lista os usuários", tags = {"Usuários"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @Operation(summary = "Lista todos os usuários do sistema (Exclusivo ADMIN/OWNER)", tags = {"Administração do Sistema"})
     @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
+    @ApiResponse(responseCode = "403", description = "Acesso negado - requer papel de ADMIN ou OWNER")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<List<UserResponseDTO>> listAll() {
         return ResponseEntity.ok(userService.listAll());
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Desativa um usuário", tags = {"Usuários"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @Operation(summary = "Desativa um usuário (Exclusivo ADMIN/OWNER)", tags = {"Administração do Sistema"})
     @ApiResponse(responseCode = "204", description = "Usuário desativado")
+    @ApiResponse(responseCode = "403", description = "Acesso negado - requer papel de ADMIN ou OWNER")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<Void> remove(@PathVariable UUID id) {
         userService.remover(id);

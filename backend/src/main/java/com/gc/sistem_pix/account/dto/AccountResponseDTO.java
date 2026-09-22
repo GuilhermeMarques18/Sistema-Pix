@@ -12,9 +12,24 @@ public record AccountResponseDTO(
         UUID userId,
         String ownerName,
         BigDecimal balance,
+        BigDecimal blockedBalance,
+        BigDecimal availableBalance,
         AccountStatus status,
         AccountType type,
         Integer transactionLimit,
         Integer pixLimit,
         LocalDateTime createdAccount) {
+
+    public AccountResponseDTO(
+            UUID id,
+            UUID userId,
+            String ownerName,
+            BigDecimal balance,
+            AccountStatus status,
+            AccountType type,
+            Integer transactionLimit,
+            Integer pixLimit,
+            LocalDateTime createdAccount) {
+        this(id, userId, ownerName, balance, BigDecimal.ZERO, balance, status, type, transactionLimit, pixLimit, createdAccount);
+    }
 }

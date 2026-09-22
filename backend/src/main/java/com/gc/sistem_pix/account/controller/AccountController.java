@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,8 +35,10 @@ public class AccountController {
     private final AccountService accountService;
 
     @GetMapping
-    @Operation(summary = "Lista todas as contas bancárias", tags = {"Contas bancárias"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @Operation(summary = "Lista todas as contas bancárias (Exclusivo ADMIN/OWNER)", tags = {"Administração do Sistema"})
     @ApiResponse(responseCode = "200", description = "Contas retornadas com sucesso")
+    @ApiResponse(responseCode = "403", description = "Acesso negado - requer papel de ADMIN ou OWNER")
     public ResponseEntity<List<AccountResponseDTO>> findAll() {
         return ResponseEntity.ok(accountService.findAll());
     }
@@ -49,8 +52,10 @@ public class AccountController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Busca uma conta por ID", tags = {"Contas bancárias"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @Operation(summary = "Busca uma conta por ID (Exclusivo ADMIN/OWNER)", tags = {"Administração do Sistema"})
     @ApiResponse(responseCode = "200", description = "Conta encontrada")
+    @ApiResponse(responseCode = "403", description = "Acesso negado - requer papel de ADMIN ou OWNER")
     public ResponseEntity<AccountResponseDTO> findById(
             @PathVariable UUID id) {
 
@@ -58,8 +63,10 @@ public class AccountController {
     }
 
     @GetMapping("/user/{userId}")
-    @Operation(summary = "Busca a conta de um usuário", tags = {"Contas bancárias"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @Operation(summary = "Busca a conta de um usuário (Exclusivo ADMIN/OWNER)", tags = {"Administração do Sistema"})
     @ApiResponse(responseCode = "200", description = "Conta encontrada")
+    @ApiResponse(responseCode = "403", description = "Acesso negado - requer papel de ADMIN ou OWNER")
     public ResponseEntity<AccountResponseDTO> findByUserId(
             @PathVariable UUID userId) {
 
@@ -77,8 +84,10 @@ public class AccountController {
     }
 
     @PatchMapping("/{id}/block")
-    @Operation(summary = "Bloqueia uma conta bancária por suspeita de fraude", tags = {"Contas bancárias"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @Operation(summary = "Bloqueia uma conta bancária por suspeita de fraude (Exclusivo ADMIN/OWNER)", tags = {"Administração do Sistema"})
     @ApiResponse(responseCode = "200", description = "Conta bloqueada com sucesso")
+    @ApiResponse(responseCode = "403", description = "Acesso negado - requer papel de ADMIN ou OWNER")
     public ResponseEntity<AccountResponseDTO> block(
             @PathVariable UUID id) {
 
@@ -96,8 +105,10 @@ public class AccountController {
     }
 
     @PatchMapping("/{id}/unblock")
-    @Operation(summary = "Desbloqueia uma conta bancária", tags = {"Contas bancárias"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @Operation(summary = "Desbloqueia uma conta bancária administrativamente (Exclusivo ADMIN/OWNER)", tags = {"Administração do Sistema"})
     @ApiResponse(responseCode = "200", description = "Conta desbloqueada com sucesso")
+    @ApiResponse(responseCode = "403", description = "Acesso negado - requer papel de ADMIN ou OWNER")
     public ResponseEntity<AccountResponseDTO> unblock(
             @PathVariable UUID id) {
 
@@ -105,8 +116,10 @@ public class AccountController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Desativa uma conta", tags = {"Contas bancárias"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @Operation(summary = "Desativa uma conta bancária (Exclusivo ADMIN/OWNER)", tags = {"Administração do Sistema"})
     @ApiResponse(responseCode = "204", description = "Conta desativada")
+    @ApiResponse(responseCode = "403", description = "Acesso negado - requer papel de ADMIN ou OWNER")
     public ResponseEntity<Void> delete(
             @PathVariable UUID id) {
 
