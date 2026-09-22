@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:ital,wght@0,400..700;1,400..700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #151B1F;
+    --foreground: #E6E6E6;
+
+    --card: #151B1F;
+    --card-foreground: #E6E6E6;
+
+    --popover: #23272C;
+    --popover-foreground: #E6E6E6;
+
+    --primary: #29925F;
+    --primary-foreground: #E6E6E6;
+
+    --secondary: #23272C;
+    --secondary-foreground: #E6E6E6;
+
+    --muted: #23272C;
+    --muted-foreground: #9EA2A6;
+
+    --accent: #33AA6E;
+    --accent-foreground: #E6E6E6;
+
+    --destructive: #C86159;
+    --destructive-foreground: #E6E6E6;
+
+    --border: #23272C;
+    --input: #23272C;
+    --ring: #32BCA9;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-bg text-text;
+    font-size: 13px;
+  }
+}

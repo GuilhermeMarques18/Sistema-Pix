@@ -1,0 +1,38 @@
+name: Deploy Backend - Oracle VPS
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Executar deploy na VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          envs: DB_URL,DB_USER,DB_PASSWORD,JWT_SECRET
+          script: |
+            cd Sistema-Pix
+            git pull
+
+            cat <<EOF > .env
+            DB_URL=${DB_URL}
+            DB_USER=${DB_USER}
+            DB_PASSWORD=${DB_PASSWORD}
+            JWT_SECRET=${JWT_SECRET}
+            EOF
+
+            docker compose up -d --build
