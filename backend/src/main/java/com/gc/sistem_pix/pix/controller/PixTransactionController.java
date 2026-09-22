@@ -59,7 +59,7 @@ public class PixTransactionController {
   
     @GetMapping("/history")
 @Operation(
-        summary = "Retorna o histórico de transações Pix do usuário autenticado",
+        summary = "Retorna o histórico de transações Pix do usuário autenticado com filtro por data",
         tags = { "Transações Pix" }
 )
 @ApiResponse(
@@ -67,12 +67,28 @@ public class PixTransactionController {
         description = "Histórico retornado com sucesso"
 )
 public ResponseEntity<PixExtractResponse> getTransactionHistory(
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        LocalDate dataInicio,
+
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        LocalDate dataFim,
+
+        @RequestParam(required = false)
+        Integer ultimosDias,
+
         @AuthenticationPrincipal UserModel authenticatedUser) {
+
+    if (ultimosDias != null && ultimosDias > 0) {
+        dataFim = LocalDate.now();
+        dataInicio = dataFim.minusDays(ultimosDias - 1);
+    }
 
     PixExtractResponse history = pixTransactionService.gerarExtrato(
             authenticatedUser,
-            null,
-            null
+            dataInicio,
+            dataFim
     );
 
     return ResponseEntity.ok(history);
