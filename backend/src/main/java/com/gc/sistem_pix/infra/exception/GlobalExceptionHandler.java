@@ -1,20 +1,26 @@
 package com.gc.sistem_pix.infra.exception;
 
-import com.gc.sistem_pix.account.exception.AccountBlockedException;
-import com.gc.sistem_pix.account.exception.InsufficientBalanceException;
-import com.gc.sistem_pix.pix.exception.InvalidPixKeyException;
-import com.gc.sistem_pix.pix.exception.InvalidPixTransactionException;
-import com.gc.sistem_pix.user.exception.DuplicateResourceException;
-import com.gc.sistem_pix.user.exception.ResourceNotFoundException;
-import jakarta.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
+import java.util.stream.Collectors;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
-import java.util.stream.Collectors;
+import com.gc.sistem_pix.account.exception.AccountBlockedException;
+import com.gc.sistem_pix.account.exception.InsufficientBalanceException;
+import com.gc.sistem_pix.dispute.exception.DisputeAlreadyExistsException;
+import com.gc.sistem_pix.dispute.exception.DisputeTimeLimitExceededException;
+import com.gc.sistem_pix.dispute.exception.InvalidDisputeOperationException;
+import com.gc.sistem_pix.pix.exception.InvalidPixKeyException;
+import com.gc.sistem_pix.pix.exception.InvalidPixTransactionException;
+import com.gc.sistem_pix.user.exception.DuplicateResourceException;
+import com.gc.sistem_pix.user.exception.ResourceNotFoundException;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -61,6 +67,34 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage(), request);
     }
 
+    @ExceptionHandler(DisputeAlreadyExistsException.class)
+    public ResponseEntity<ApiErrorResponse> handleDisputeAlreadyExists(
+            DisputeAlreadyExistsException exception,
+            HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(DisputeTimeLimitExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleDisputeTimeLimitExceeded(
+            DisputeTimeLimitExceededException exception,
+            HttpServletRequest request) {
+        return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidDisputeOperationException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidDisputeOperation(
+            InvalidDisputeOperationException exception,
+            HttpServletRequest request) {
+        return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAccessDenied(
+            AccessDeniedException exception,
+            HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "Acesso negado: permissões insuficientes", request);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(
             MethodArgumentNotValidException exception,
@@ -85,7 +119,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleIllegalState(
             IllegalStateException exception,
             HttpServletRequest request) {
-        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage(), request);
+        return buildResponse(HttpStatus.UNPROCESSABLE_CONTENT, exception.getMessage(), request);
     }
 
     private ResponseEntity<ApiErrorResponse> buildResponse(

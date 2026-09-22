@@ -48,9 +48,9 @@ public class PixTransaction {
     @Column(name = "data_hora", nullable = false, updatable = false)
     private LocalDateTime dataHora;
 
-    // @Builder.Default
-    // @Column(name = "transacao_estornada", nullable = false)
-    // private boolean transacaoEstornada = false;
+    @Builder.Default
+    @Column(name = "transacao_estornada", nullable = false)
+    private boolean transacaoEstornada = false;
     // @Builder.Default
     // @Column(name = "transacao_agendada", nullable = false)
     // private boolean transacaoAgendada = false;

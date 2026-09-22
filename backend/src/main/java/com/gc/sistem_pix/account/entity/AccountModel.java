@@ -55,6 +55,12 @@ public class AccountModel {
     @Setter(AccessLevel.NONE)
     private BigDecimal balance = BigDecimal.ZERO;
 
+    @NotNull
+    @Column(name = "saldo_bloqueado", nullable = false, precision = 19, scale = 2)
+    @Builder.Default
+    @Setter(AccessLevel.NONE)
+    private BigDecimal blockedBalance = BigDecimal.ZERO;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
@@ -93,6 +99,12 @@ public class AccountModel {
         this.status = AccountStatus.DESBLOQUEADA;
     }
 
+    public BigDecimal getAvailableBalance() {
+        BigDecimal blocked = this.blockedBalance;
+        BigDecimal total = this.balance;
+        return total.subtract(blocked);
+    }
+
     public void credit(BigDecimal value) {
         validatePositiveValue(value);
         this.balance = this.balance.add(value);
@@ -101,10 +113,34 @@ public class AccountModel {
     public void debit(BigDecimal value) {
         validatePositiveValue(value);
 
-        if (this.balance.compareTo(value) < 0) {
-            throw new InsufficientBalanceException("Saldo insuficiente");
+        if (getAvailableBalance().compareTo(value) < 0) {
+            throw new InsufficientBalanceException(
+                    "Saldo disponível insuficiente. Existem valores retidos sob disputa.");
         }
 
+        this.balance = this.balance.subtract(value);
+    }
+
+    public void blockBalanceForDispute(BigDecimal value) {
+        validatePositiveValue(value);
+        if (getAvailableBalance().compareTo(value) < 0) {
+            throw new InsufficientBalanceException("Saldo insuficiente na conta para abertura de disputa");
+        }
+        this.blockedBalance = BigDecimal.ZERO;
+        this.blockedBalance = this.blockedBalance.add(value);
+    }
+
+    public void unblockBalanceFromDispute(BigDecimal value) {
+        validatePositiveValue(value);
+        if (this.blockedBalance.compareTo(value) < 0) {
+            throw new IllegalStateException("Saldo bloqueado não pode ser menor que o valor a ser desbloqueado");
+        }
+        this.blockedBalance = this.blockedBalance.subtract(value);
+    }
+
+    public void executeDisputeRefund(BigDecimal value) {
+        validatePositiveValue(value);
+        unblockBalanceFromDispute(value);
         this.balance = this.balance.subtract(value);
     }
 

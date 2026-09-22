@@ -15,7 +15,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
         @Tag(name = "Usuários", description = "Cadastro e gerenciamento de usuários"),
         @Tag(name = "Contas bancárias", description = "Operações de contas"),
         @Tag(name = "Chaves Pix", description = "Gerenciamento de chaves Pix"),
-        @Tag(name = "Transações Pix", description = "Transferências Pix")
+        @Tag(name = "Transações Pix", description = "Transferências Pix"),
+        @Tag(name = "Disputas Pix", description = "Abertura, cancelamento, contestação e aceite de disputas"),
+        @Tag(name = "Administração do Sistema", description = "Operações administrativas, auditoria e moderação de disputas")
 })
 @SecurityScheme(name = "bearerAuth", description = "Informe o token JWT retornado pelo endpoint de login.", type = SecuritySchemeType.HTTP, in = SecuritySchemeIn.HEADER, scheme = "bearer", bearerFormat = "JWT")
 public class OpenApiConfiguration {

@@ -177,6 +177,8 @@ public class AccountService {
                 account.getUser().getId(),
                 account.getUser().getName(),
                 account.getBalance(),
+                account.getBlockedBalance(),
+                account.getAvailableBalance(),
                 account.getStatus(),
                 account.getType(),
                 account.getTransactionLimit(),

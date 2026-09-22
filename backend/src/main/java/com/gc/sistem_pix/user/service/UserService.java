@@ -17,6 +17,7 @@ import com.gc.sistem_pix.user.entity.PessoaFisicaModel;
 import com.gc.sistem_pix.user.entity.PessoaJuridicaModel;
 import com.gc.sistem_pix.user.entity.UserModel;
 import com.gc.sistem_pix.user.enums.TypePerson;
+import com.gc.sistem_pix.user.enums.UserRole;
 import com.gc.sistem_pix.user.exception.DuplicateResourceException;
 import com.gc.sistem_pix.user.exception.ResourceNotFoundException;
 import com.gc.sistem_pix.user.repository.PessoaFisicaRepository;
@@ -175,6 +176,26 @@ public class UserService {
         }
     }
 
+    @Transactional
+    public UserResponseDTO updateRole(UUID userId, UserRole newRole) {
+        if (newRole == null) {
+            throw new IllegalArgumentException("O papel (role) é obrigatório");
+        }
+
+        UserModel user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado: " + userId));
+
+        if (user.getRole() == UserRole.OWNER) {
+            throw new IllegalArgumentException("Não é permitido alterar o papel do usuário OWNER");
+        }
+
+        if (newRole == UserRole.OWNER) {
+            throw new IllegalArgumentException("Não é permitido promover usuários para OWNER");
+        }
+
+        user.setRole(newRole);
+        return toResponseDTO(userRepository.save(user));
+    }
+
     private UserResponseDTO toResponseDTO(UserModel user) {
         return pessoaFisicaRepository.findByUserId(user.getId())
                 .map(pessoa -> new UserResponseDTO(
@@ -184,6 +205,7 @@ public class UserService {
                         user.getTelefone(),
                         TypePerson.FISICA,
                         pessoa.getCpf(),
+                        user.getRole(),
                         user.getCreatedUser()))
                 .orElseGet(() -> pessoaJuridicaRepository.findByUserId(user.getId())
                         .map(pessoa -> new UserResponseDTO(
@@ -193,6 +215,7 @@ public class UserService {
                                 user.getTelefone(),
                                 TypePerson.JURIDICA,
                                 pessoa.getCnpj(),
+                                user.getRole(),
                                 user.getCreatedUser()))
                         .orElseThrow(() -> new IllegalStateException(
                                 "Usuário deve possuir pessoa física ou pessoa jurídica")));

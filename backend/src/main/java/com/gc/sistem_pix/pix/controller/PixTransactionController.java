@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,8 +39,10 @@ public class PixTransactionController {
     private final PixTransactionService pixTransactionService;
 
     @GetMapping
-    @Operation(summary = "Lista todas as transações Pix realizadas", tags = { "Transações Pix" })
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @Operation(summary = "Lista todas as transações Pix realizadas (Exclusivo ADMIN/OWNER)", tags = { "Administração do Sistema" })
     @ApiResponse(responseCode = "200", description = "Transações retornadas com sucesso")
+    @ApiResponse(responseCode = "403", description = "Acesso negado - requer papel de ADMIN ou OWNER")
     public ResponseEntity<List<PixTransactionResponse>> findAll() {
         return ResponseEntity.ok(pixTransactionService.findAll());
     }
@@ -103,9 +106,11 @@ public ResponseEntity<PixExtractResponse> getTransactionHistory(
     }
 
     @GetMapping("/user/{userId}")
-    @Operation(summary = "Lista as transações Pix de um usuário", tags = { "Transações Pix" })
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @Operation(summary = "Lista as transações Pix de um usuário (Exclusivo ADMIN/OWNER)", tags = { "Administração do Sistema" })
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Transações retornadas com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado - requer papel de ADMIN ou OWNER"),
             @ApiResponse(responseCode = "404", description = "Conta bancária não encontrada")
     })
     public ResponseEntity<List<PixTransactionResponse>> findAllByUserId(@PathVariable UUID userId) {
