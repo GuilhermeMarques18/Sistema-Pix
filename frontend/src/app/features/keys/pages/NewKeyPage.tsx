@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+import { CaretRightIcon } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/app/shared/components/ui/page-header';
 import { pixKeyMeta } from '../lib/pixKeyMeta';
@@ -32,7 +32,7 @@ export function NewKeyPage() {
                   <p className="text-xs text-text-secondary">{meta.description}</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-text-secondary" />
+              <CaretRightIcon className="h-4 w-4 text-text-secondary" />
             </button>
           );
         })}

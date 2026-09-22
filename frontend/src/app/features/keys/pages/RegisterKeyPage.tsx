@@ -1,27 +1,35 @@
-import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { PageHeader } from '@/app/shared/components/ui/page-header';
 import { Label } from '@/app/shared/components/ui/label';
 import { Input } from '@/app/shared/components/ui/input';
 import { Button } from '@/app/shared/components/ui/button';
 import { pixKeyMeta } from '../lib/pixKeyMeta';
+import { registerKeySchema, type RegisterKeyFormData } from '../schemas/registerKey.schema';
 import type { PixKeyType } from '../types';
-
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function RegisterKeyPage() {
   const { type } = useParams<{ type: PixKeyType }>();
   const navigate = useNavigate();
-  const [value, setValue] = useState('');
 
   if (!type || !(type in pixKeyMeta)) return null;
 
   const meta = pixKeyMeta[type];
-  const isValid = type === 'email' ? emailRegex.test(value) : value.trim().length > 0;
 
-  function handleSubmit() {
-    if (!isValid) return;
-    // TODO: chamar API para registrar a chave
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isValid },
+  } = useForm<RegisterKeyFormData>({
+    resolver: zodResolver(registerKeySchema(type)),
+    mode: 'onChange',
+  });
+
+  const value = watch('value');
+
+  function onSubmit(data: RegisterKeyFormData) {
     navigate('/keys');
   }
 
@@ -32,27 +40,26 @@ export function RegisterKeyPage() {
         subtitle={`Preencha a chave do tipo ${meta.label} que você quer utilizar para receber transferências por PIX.`}
       />
 
-      <div className="mt-6 flex-1 px-4">
-        <Label htmlFor="pix-key-value">{meta.label}</Label>
-        <Input
-          id="pix-key-value"
-          className="mt-2"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={type === 'email' ? 'seuemail@exemplo.com' : ''}
-        />
-        {value.length > 0 && (
-          <p className={`mt-1 text-xs ${isValid ? 'text-brand-element' : 'text-text-negative'}`}>
-            {isValid ? 'Chave válida' : 'Chave inválida'}
-          </p>
-        )}
-      </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col px-4">
+        <div className="mt-6 flex-1">
+          <Label htmlFor="pix-key-value">{meta.label}</Label>
+          <Input
+            id="pix-key-value"
+            className="mt-2"
+            placeholder={type === 'email' ? 'seuemail@exemplo.com' : ''}
+            {...register('value')}
+          />
+          {value && value.length > 0 && (
+            <p className={`mt-1 text-xs ${errors.value ? 'text-text-negative' : 'text-brand-element'}`}>
+              {errors.value ? errors.value.message : 'Chave válida'}
+            </p>
+          )}
+        </div>
 
-      <div className="px-4">
-        <Button className="w-full" size="lg" disabled={!isValid} onClick={handleSubmit}>
+        <Button type="submit" className="w-full" size="lg" disabled={!isValid}>
           Confirmar
         </Button>
-      </div>
+      </form>
     </div>
   );
 }

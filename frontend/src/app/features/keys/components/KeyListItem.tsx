@@ -1,4 +1,4 @@
-import { Pencil, Ban, CheckCircle2 } from 'lucide-react';
+import { PencilSimple, Prohibit, CheckCircle } from '@phosphor-icons/react';
 import { Badge } from '@/app/shared/components/ui/badge';
 import { pixKeyMeta } from '../lib/pixKeyMeta';
 import type { PixKey } from '../types';
@@ -34,14 +34,14 @@ export function KeyListItem({ pixKey, onEdit, onToggleStatus }: KeyListItemProps
           onClick={() => onEdit(pixKey)}
           className="flex flex-col items-center gap-0.5 transition-colors hover:text-text"
         >
-          <Pencil className="h-4 w-4" />
+          <PencilSimple className="h-4 w-4" />
           Alterar
         </button>
         <button
           onClick={() => onToggleStatus(pixKey)}
           className="flex flex-col items-center gap-0.5 transition-colors hover:text-text"
         >
-          {isActive ? <Ban className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+          {isActive ? <Prohibit className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
           {isActive ? 'Suspender' : 'Ativar'}
         </button>
       </div>
