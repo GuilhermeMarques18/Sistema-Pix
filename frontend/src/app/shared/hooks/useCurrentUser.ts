@@ -14,25 +14,35 @@ export function useCurrentUser() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+    const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const acc = await userService.getMyAccount();
       setAccount(acc);
-      setUser(await userService.getUser(acc.userId));
+      
+      const id = acc.userId || (acc as any).usuarioId || (acc as any).idUsuario || (acc as any).id;
+      
+      console.log("DEBUG - Dados da Conta:", acc); 
+      
+      if (!id) {
+        throw new Error("O backend não enviou o ID do usuário na conta.");
+      }
+
+      setUser(await userService.getUser(id));
+      
     } catch (err) {
       setError(getApiErrorMessage(err, 'Não foi possível carregar seus dados.'));
     } finally {
       setIsLoading(false);
     }
+  
   }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  /** Atualiza nome/e-mail. Lança erro (com mensagem do backend) se falhar. */
   async function updateUser(payload: UpdateUserPayload) {
     setUser(await userService.updateMe(payload));
   }
