@@ -45,10 +45,16 @@
 
   html {
     color-scheme: dark;
+    font-size: 14px;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      font-size: 20px;
+    }
   }
 
   body {
     @apply bg-bg text-text;
-    font-size: 13px;
   }
 }

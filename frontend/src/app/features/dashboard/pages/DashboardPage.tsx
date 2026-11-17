@@ -12,8 +12,8 @@ import {
 const MOCK_USER = 'Geovana Veras';
 
 const MOCK_BALANCE = {
-  balance: 400.0,
-  used: 4600.0,
+  balance: 1400.0,
+  used: 3600.0,
   limit: 5000.0,
 };
 
@@ -82,7 +82,10 @@ export function DashboardPage() {
       <div className="mx-4 my-3 h-px bg-bg-input" />
 
       {/* Ações rápidas */}
-      <QuickActions />
+      <QuickActions
+        availableBalance={MOCK_BALANCE.balance}
+        pixLimit={MOCK_BALANCE.limit}
+      />
 
       {/* Divisor sutil */}
       <div className="mx-4 my-3 h-px bg-bg-input" />

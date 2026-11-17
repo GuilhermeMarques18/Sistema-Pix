@@ -13,7 +13,7 @@ export function DashboardHeader({ userName }: DashboardHeaderProps) {
   return (
     <header
       className="relative w-full overflow-hidden"
-      style={{ minHeight: "160px" }}
+      style={{ minHeight: "200px" }}
     >
       {/* Banner de fundo */}
       <img
@@ -24,7 +24,7 @@ export function DashboardHeader({ userName }: DashboardHeaderProps) {
       />
 
       {/* Conteúdo sobre o banner */}
-      <div className="relative z-10 flex items-center gap-4 px-5 pt-10 pb-8">
+      <div className="relative z-10 flex items-center gap-4 px-6 pt-12 pb-10">
         {/* Avatar circular */}
         <div
           className="flex h-14 w-14 flex-shrink-0 items-center justify-center

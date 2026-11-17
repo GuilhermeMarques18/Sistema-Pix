@@ -22,11 +22,11 @@ export function BalanceCard({ balance, used, limit }: BalanceCardProps) {
 
   return (
     <div className="px-4 pt-4 pb-2">
-      <p className="text-xs text-text-secondary mb-1">Saldo atual</p>
+      <p className="text-sm text-text-secondary mb-1">Saldo atual</p>
 
       {/* Balance row */}
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-title font-bold text-text">
+        <span className="text-3xl font-bold text-text">
           {visible ? formatBRL(balance) : 'R$ ••••••'}
         </span>
         <button

@@ -44,14 +44,14 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
 
       {/* Name + document */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-text truncate">{transaction.name}</p>
-        <p className="text-xs text-text-secondary">{transaction.document}</p>
+        <p className="text-base font-medium text-text truncate">{transaction.name}</p>
+        <p className="text-sm text-text-secondary">{transaction.document}</p>
       </div>
 
       {/* Amount + date */}
       <div className="text-right flex-shrink-0">
         <p
-          className={`text-sm font-semibold ${
+          className={`text-base font-semibold ${
             isCredit ? 'text-brand-element' : 'text-text-negative'
           }`}
         >

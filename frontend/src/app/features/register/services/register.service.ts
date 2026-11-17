@@ -29,7 +29,9 @@ export interface RegisterResponse {
 
 export const registerService = {
   async register(data: RegisterFormData): Promise<RegisterResponse> {
-    const { name, email, password, telefone, tipoPessoa, documento } = data;
+    const { name, email, password, tipoPessoa, documento } = data;
+    // Remove tudo que não seja dígito ou +, para satisfazer o padrão do backend: \+?[0-9]{10,13}
+    const telefone = data.telefone.replace(/[^\d+]/g, '');
 
     if (tipoPessoa === 'FISICA') {
       const payload: RegisterPessoaFisicaPayload = {
