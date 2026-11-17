@@ -1,4 +1,11 @@
-import { UserIcon, EnvelopeIcon, PhoneIcon, ShuffleIcon, type Icon } from '@phosphor-icons/react';
+import {
+  UserIcon,
+  BuildingsIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  ShuffleIcon,
+  type Icon,
+} from '@phosphor-icons/react';
 import type { PixKeyType } from '../types';
 
 /**
@@ -12,6 +19,11 @@ export const pixKeyMeta: Record<PixKeyType, { label: string; description: string
     label: 'CPF',
     description: 'Utilize seu CPF como chave',
     icon: UserIcon,
+  },
+  cnpj: {
+    label: 'CNPJ',
+    description: 'Utilize seu CNPJ como chave',
+    icon: BuildingsIcon,
   },
   email: {
     label: 'E-mail',

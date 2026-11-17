@@ -16,6 +16,7 @@ export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
       <div>
         <button
           onClick={() => navigate(-1)}
+          aria-label="Voltar"
           className="mb-3 flex h-8 w-8 items-center justify-center rounded-full border border-bg-input text-text transition-colors hover:bg-bg-input"
         >
           <ArrowLeftIcon className="h-4 w-4" />

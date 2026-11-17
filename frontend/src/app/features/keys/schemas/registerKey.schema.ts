@@ -1,19 +1,26 @@
 import { z } from 'zod';
 import type { PixKeyType } from '../types';
 
-const cpfRegex = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/;
-const phoneRegex = /^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/;
+const onlyDigits = (value: string) => value.replace(/\D/g, '');
+
+// Mesmos formatos aceitos pelo backend (PixKeyService)
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phoneRegex = /^\+?[0-9]{10,13}$/;
 
 const valueSchemaByType: Record<PixKeyType, z.ZodTypeAny> = {
   cpf: z
     .string({ required_error: 'CPF obrigatório.' })
-    .regex(cpfRegex, 'Informe um CPF válido (000.000.000-00).'),
+    .refine((v) => onlyDigits(v).length === 11, 'Informe um CPF válido com 11 dígitos.'),
+  cnpj: z
+    .string({ required_error: 'CNPJ obrigatório.' })
+    .refine((v) => onlyDigits(v).length === 14, 'Informe um CNPJ válido com 14 dígitos.'),
   email: z
     .string({ required_error: 'E-mail obrigatório.' })
-    .email('Informe um e-mail válido.'),
+    .regex(emailRegex, 'Informe um e-mail válido.'),
   phone: z
     .string({ required_error: 'Telefone obrigatório.' })
-    .regex(phoneRegex, 'Informe um telefone válido.'),
+    .regex(phoneRegex, 'Informe só números com DDD (ex: 85999999999).'),
+  // Chave aleatória é gerada pelo backend: não há valor para validar
   random: z.string().optional(),
 };
 

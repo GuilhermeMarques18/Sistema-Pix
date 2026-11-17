@@ -1,25 +1,58 @@
-import { useState } from 'react';
-import type { PixKey } from '../types';
-
-const initialKeys: PixKey[] = [
-  { id: '1', type: 'cpf', value: '999.999.999-08', status: 'active' },
-  { id: '2', type: 'email', value: 'geovana@gmail.com', status: 'suspended' },
-  { id: '3', type: 'phone', value: '4002 8922', status: 'active' },
-  { id: '4', type: 'random', value: 'f3o9-dkb3-3lajf', status: 'active' },
-];
+import { useCallback, useEffect, useState } from 'react';
+import { getApiErrorMessage } from '@/app/shared/lib/apiError';
+import { KeyEndpointUnavailableError, pixKeysService } from '../services/pixKeys.service';
+import type { PixKey, PixKeyType } from '../types';
 
 export function usePixKeys() {
-  const [keys, setKeys] = useState<PixKey[]>(initialKeys);
+  const [keys, setKeys] = useState<PixKey[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  function toggleStatus(target: PixKey) {
-    setKeys((prev) =>
-      prev.map((k) =>
-        k.id === target.id
-          ? { ...k, status: k.status === 'active' ? 'suspended' : 'active' }
-          : k,
-      ),
-    );
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      setKeys(await pixKeysService.listMine());
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Não foi possível carregar suas chaves.'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function createKey(type: PixKeyType, value?: string): Promise<PixKey> {
+    const created = await pixKeysService.create(type, value);
+    setKeys((prev) => [created, ...prev]);
+    return created;
   }
 
-  return { keys, toggleStatus };
+  /** Suspende ou desbloqueia a chave. Só muda a tela se a API confirmar. */
+  async function toggleStatus(target: PixKey) {
+    setNotice(null);
+    const next = target.status === 'active' ? 'suspended' : 'active';
+    try {
+      const updated = await pixKeysService.setStatus(target.id, next);
+      setKeys((prev) => prev.map((k) => (k.id === updated.id ? updated : k)));
+    } catch (err) {
+      setNotice(
+        err instanceof KeyEndpointUnavailableError
+          ? err.message
+          : getApiErrorMessage(err, 'Não foi possível alterar o status da chave.'),
+      );
+    }
+  }
+
+  /** Altera o valor da chave. Lança erro para a tela de edição exibir. */
+  async function updateKey(target: PixKey, value: string): Promise<PixKey> {
+    const updated = await pixKeysService.update(target.id, target.type, value);
+    setKeys((prev) => prev.map((k) => (k.id === updated.id ? updated : k)));
+    return updated;
+  }
+
+  return { keys, isLoading, error, notice, reload: load, createKey, toggleStatus, updateKey };
 }
