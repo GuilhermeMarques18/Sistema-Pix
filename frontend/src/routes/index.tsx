@@ -5,12 +5,14 @@ import { DashboardPage } from '@/app/features/dashboard';
 import { ExtratoPage } from '@/app/features/extrato';
 import { InitPage } from '@/app/features/init';
 import { RegisterPage } from '@/app/features/register';
+import { AjustesPage } from '@/app/features/settings';
 import { AppShellLayout } from '@/app/layout';
 
 // Importações das novas páginas
 import { KeysPage } from '@/app/features/keys/pages/KeysPage';
 import { NewKeyPage } from '@/app/features/keys/pages/NewKeyPage';
 import { RegisterKeyPage } from '@/app/features/keys/pages/RegisterKeyPage';
+import { EditKeyPage } from '@/app/features/keys/pages/EditKeyPage';
 import { ProfilePage } from '@/app/features/profile/pages/ProfilePage';
 /**
  * Definição central de todas as rotas da aplicação.
@@ -36,9 +38,10 @@ export function AppRoutes() {
           <Route index element={<KeysPage />} />
           <Route path="new" element={<NewKeyPage />} />
           <Route path="new/:type" element={<RegisterKeyPage />} />
+          <Route path=":id/edit" element={<EditKeyPage />} />
         </Route>
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/ajustes" element={<div className="p-8 text-text">Ajustes</div>} />
+        <Route path="/ajustes" element={<AjustesPage />} />
       </Route>
 
       {/* Rota de fallback */}
