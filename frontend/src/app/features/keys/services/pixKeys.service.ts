@@ -61,7 +61,7 @@ function toPixKey(dto: PixKeyResponse): PixKey {
 export const pixKeysService = {
   /** GET /api/pix/keys/me */
   async listMine(): Promise<PixKey[]> {
-    const { data } = await api.get<PixKeyResponse[]>('/api/pix/keys/me');
+    const { data } = await api.get<PixKeyResponse[]>('/api/pix/keys/me/');
     return data.map(toPixKey);
   },
 
