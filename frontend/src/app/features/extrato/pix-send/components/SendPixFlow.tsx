@@ -58,15 +58,15 @@ export function SendPixFlow({ availableBalance, pixLimit, onClose }: SendPixFlow
   return (
     /*
      * Overlay que cobre toda a tela incluindo a BottomNav.
-     * z-[60] fica acima da BottomNav (z-50).
+     * Mobile: tela cheia. Desktop: fundo escurecido + modal centralizado.
      */
     <div
-      className="fixed inset-0 z-[60] flex justify-center bg-bg"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-bg md:bg-black/60"
       role="dialog"
       aria-modal="true"
       aria-label="Enviar PIX"
     >
-      <div className="w-full max-w-md flex flex-col overflow-hidden">
+      <div className="w-full max-w-md h-full md:h-[85vh] md:rounded-2xl md:shadow-2xl bg-bg flex flex-col overflow-hidden">
       {/* Progress indicator */}
       {step !== 'sucesso' && (
         <StepProgressBar step={step} />

@@ -30,12 +30,12 @@ export function LoginPage() {
   }
 
   return (
-    /* Wrapper externo: fundo neutro da app, só centraliza */
-    <div className="flex h-[100dvh] w-full justify-center bg-bg">
+    /* Wrapper externo: fundo neutro da app, centraliza horizontal e vertical */
+    <div className="flex min-h-[100dvh] w-full items-center justify-center bg-bg">
 
       {/* Coluna central — degradê e conteúdo ficam aqui */}
       <div
-        className="flex items-center h-full w-full max-w-md flex-col"
+        className="flex items-center h-full min-h-[100dvh] md:min-h-0 md:h-auto md:rounded-2xl md:shadow-2xl w-full max-w-md flex-col md:overflow-hidden"
         style={{
           background: 'linear-gradient(180deg, #12372e 0%, #131A1F 50%, #131A1F 100%)',
         }}
