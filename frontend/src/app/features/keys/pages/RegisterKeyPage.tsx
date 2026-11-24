@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,8 +9,9 @@ import { Button } from '@/app/shared/components/ui/button';
 import { getApiErrorMessage } from '@/app/shared/lib/apiError';
 import { useCurrentUser } from '@/app/shared/hooks';
 import { pixKeyMeta } from '../lib/pixKeyMeta';
-import { formatPhoneInput, formatPixKey } from '../lib/formatPixKey';
+import { formatPhoneInput, formatPixKey, normalizePhoneKey } from '../lib/formatPixKey';
 import { usePixKeys } from '../hooks/usePixKeys';
+import { pixKeysService } from '../services/pixKeys.service';
 import { registerKeySchema, type RegisterKeyFormData } from '../schemas/registerKey.schema';
 import type { PixKeyType } from '../types';
 
@@ -20,6 +21,7 @@ export function RegisterKeyPage() {
   const { createKey } = usePixKeys();
   const { user, error: userError } = useCurrentUser();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [validationState, setValidationState] = useState<'idle' | 'checking' | 'valid' | 'invalid' | 'taken'>('idle');
 
   // Os hooks vêm sempre antes de qualquer return antecipado (regra dos hooks)
   const isKnownType = !!params.type && params.type in pixKeyMeta;
@@ -29,6 +31,20 @@ export function RegisterKeyPage() {
   const isCpf = type === 'cpf';
   const isDocument = isCpf || type === 'cnpj';
   const incompatibleDocument = !!user && ((isCpf && user.tipoPessoa !== 'FISICA') || (type === 'cnpj' && user.tipoPessoa !== 'JURIDICA'));
+
+  const validateKey = useCallback(async (keyType: PixKeyType, keyValue: string) => {
+    if (!keyValue || isDocument || isRandom) return;
+    setValidationState('checking');
+    try {
+      const normalized = keyType === 'phone' ? normalizePhoneKey(keyValue) : keyValue.trim();
+      const result = await pixKeysService.validate(keyType, normalized);
+      if (!result.valida) { setValidationState('invalid'); return; }
+      if (result.cadastrada) { setValidationState('taken'); return; }
+      setValidationState('valid');
+    } catch {
+      setValidationState('idle');
+    }
+  }, [isDocument, isRandom]);
 
   const schema = useMemo(() => registerKeySchema(type), [type]);
   const {
@@ -61,6 +77,21 @@ export function RegisterKeyPage() {
   if (incompatibleDocument) return <p role="alert" className="p-4 text-text-negative">Este documento não corresponde ao tipo da sua conta. <button className="underline" onClick={() => navigate('/keys/new')}>Escolher outra chave</button></p>;
 
   const value = watch('value');
+
+  // Debounce da validação — dispara 600ms após o usuário parar de digitar
+  useEffect(() => {
+    if (!value || isDocument || isRandom) { setValidationState('idle'); return; }
+    const timer = setTimeout(() => { void validateKey(type, value); }, 600);
+    return () => clearTimeout(timer);
+  }, [value, type, isDocument, isRandom, validateKey]);
+
+  const validationMessage = {
+    idle: null,
+    checking: { text: 'Verificando...', color: 'text-text-secondary' },
+    valid: { text: 'Chave válida e disponível', color: 'text-brand-element' },
+    invalid: { text: 'Formato de chave inválido', color: 'text-text-negative' },
+    taken: { text: 'Esta chave já está cadastrada por outro usuário', color: 'text-text-negative' },
+  }[validationState];
 
   async function onSubmit(data: RegisterKeyFormData) {
     setSubmitError(null);
@@ -113,10 +144,8 @@ export function RegisterKeyPage() {
                 />
               )}
               {!isDocument && value && value.length > 0 && (
-                <p
-                  className={`mt-1 text-xs ${errors.value ? 'text-text-negative' : 'text-brand-element'}`}
-                >
-                  {errors.value ? String(errors.value.message) : 'Chave válida'}
+                <p className={`mt-1 text-xs ${errors.value ? 'text-text-negative' : validationMessage ? validationMessage.color : 'text-brand-element'}`}>
+                  {errors.value ? String(errors.value.message) : validationMessage?.text}
                 </p>
               )}
             </>
@@ -130,7 +159,7 @@ export function RegisterKeyPage() {
           type="submit"
           className="w-full"
           size="lg"
-          disabled={(!isRandom && !isValid) || !user || isSubmitting}
+          disabled={(!isRandom && !isValid) || !user || isSubmitting || validationState === 'taken' || validationState === 'invalid'}
         >
           {isSubmitting ? 'Enviando...' : isRandom ? 'Gerar chave' : 'Confirmar'}
         </Button>

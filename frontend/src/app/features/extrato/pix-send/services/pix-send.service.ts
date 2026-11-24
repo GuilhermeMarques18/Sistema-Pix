@@ -26,4 +26,11 @@ export const pixSendService = {
     const { data } = await api.get<PixTransactionResponse>(`/api/pix/transactions/${id}`);
     return data;
   },
+
+  async validateKey(tipo: PixKeyType, chave: string): Promise<{ valida: boolean; cadastrada: boolean }> {
+    const { data } = await api.get<{ valida: boolean; cadastrada: boolean }>('/api/pix/keys/validate', {
+      params: { tipo, chave },
+    });
+    return data;
+  },
 };

@@ -2,50 +2,37 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { extratoService } from '../services/extrato.service';
-import type { PixTransactionResponse, AccountSummary, PeriodFilter } from '../types/extrato.types';
+import type { PixExtractItemResponse, AccountSummary, PeriodFilter } from '../types/extrato.types';
 import { getApiErrorMessage } from '@/app/shared/lib/apiError';
 
 interface UseExtratoReturn {
-  transactions: PixTransactionResponse[];
-  filteredTransactions: PixTransactionResponse[];
+  transactions: PixExtractItemResponse[];
+  filteredTransactions: PixExtractItemResponse[];
   account: AccountSummary | null;
   isLoading: boolean;
   error: string | null;
   period: PeriodFilter;
-  setPeriod: (period: PeriodFilter) => void;
+  setPeriod: (period: PeriodFilter) => void; // eslint-disable-line no-unused-vars
   reload: () => Promise<void>;
 }
 
-function filterByPeriod(
-  transactions: PixTransactionResponse[],
-  period: PeriodFilter,
-): PixTransactionResponse[] {
-  if (period === 'all') return transactions;
-
-  const days = parseInt(period, 10);
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-
-  return transactions.filter((t) => new Date(t.dataHora) >= cutoff);
-}
-
 export function useExtrato(): UseExtratoReturn {
-  const [transactions, setTransactions] = useState<PixTransactionResponse[]>([]);
+  const [transactions, setTransactions] = useState<PixExtractItemResponse[]>([]);
   const [account, setAccount] = useState<AccountSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<PeriodFilter>('30');
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (currentPeriod: PeriodFilter) => {
     setError(null);
+    setIsLoading(true);
 
     try {
       const [txList, accountData] = await Promise.all([
-        extratoService.getMyTransactions(),
+        extratoService.getMyTransactions(currentPeriod),
         extratoService.getMyAccount(),
       ]);
 
-      // Ordena da mais recente para a mais antiga
       const sorted = [...txList].sort(
         (a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime(),
       );
@@ -60,19 +47,21 @@ export function useExtrato(): UseExtratoReturn {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    void fetchData(period);
+  }, [fetchData, period]);
 
-  const filteredTransactions = filterByPeriod(transactions, period);
+  function handleSetPeriod(newPeriod: PeriodFilter) {
+    setPeriod(newPeriod);
+  }
 
   return {
     transactions,
-    filteredTransactions,
+    filteredTransactions: transactions, // já filtrado pelo backend
     account,
     isLoading,
     error,
     period,
-    setPeriod,
-    reload: fetchData,
+    setPeriod: handleSetPeriod,
+    reload: () => fetchData(period),
   };
 }

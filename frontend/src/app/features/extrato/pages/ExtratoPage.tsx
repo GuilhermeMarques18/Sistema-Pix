@@ -37,7 +37,7 @@ export function ExtratoPage() {
       {/* Lista de transações */}
       {isLoading && <p role="status" className="p-4 text-text-secondary">Carregando extrato...</p>}
       {account && !error && (
-        <ExtratoTransactionList transactions={filteredTransactions} account={account} isLoading={isLoading} />
+        <ExtratoTransactionList transactions={filteredTransactions} isLoading={isLoading} />
       )}
 
       {/* Fluxo de envio de Pix — overlay full-screen (fixed, z-50) */}

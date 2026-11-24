@@ -67,4 +67,12 @@ export const pixKeysService = {
 
     return toPixKey(data);
   },
+
+  /** GET /api/pix/keys/validate — valida formato e verifica se já está cadastrada */
+  async validate(type: PixKeyType, value: string): Promise<{ valida: boolean; cadastrada: boolean }> {
+    const { data } = await api.get<{ valida: boolean; cadastrada: boolean }>('/api/pix/keys/validate', {
+      params: { tipo: toApiType[type], chave: value },
+    });
+    return data;
+  },
 };
