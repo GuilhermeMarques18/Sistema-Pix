@@ -51,9 +51,14 @@ public class PixTransactionService {
             throw new InvalidPixTransactionException("Senha incorreta. Use a senha de acesso à sua conta.");
         }
 
+        return transfer(request, authenticatedUser.getId());
+    }
+
+    // Called inside the scheduling transaction after authentication at creation time.
+    PixTransactionResponse transfer(PixTransactionRequest request, UUID userId) {
         String canonicalKey = PixKeyNormalizer.normalize(request.tipoChave(), request.chavePix());
         String fingerprint = fingerprint(request, canonicalKey);
-        UUID sourceId = accountRepository.findAccountIdByUserId(authenticatedUser.getId())
+        UUID sourceId = accountRepository.findAccountIdByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conta bancária não encontrada para o usuário autenticado"));
         var previous = pixTransactionRepository.findByContaOrigemIdAndIdempotencyKey(sourceId, request.idempotencyKey());
         if (previous.isPresent()) return replay(previous.get(), fingerprint);
@@ -164,7 +169,7 @@ public class PixTransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }
 
-    private void validateRequest(PixTransactionRequest request, UserModel user) {
+    void validateRequest(PixTransactionRequest request, UserModel user) {
         if (request == null || user == null || user.getId() == null) throw new InvalidPixTransactionException("Dados da transação e usuário autenticado são obrigatórios");
         if (request.tipoChave() == null || request.chavePix() == null || request.chavePix().isBlank()
                 || request.chavePix().length() > 77 || request.contaDestinoId() == null || request.idempotencyKey() == null) {
