@@ -7,29 +7,29 @@ import { InitPage } from '@/app/features/init';
 import { RegisterPage } from '@/app/features/register';
 import { AjustesPage } from '@/app/features/settings';
 import { AppShellLayout } from '@/app/layout';
-
-// Importações das novas páginas
 import { KeysPage } from '@/app/features/keys/pages/KeysPage';
 import { NewKeyPage } from '@/app/features/keys/pages/NewKeyPage';
 import { RegisterKeyPage } from '@/app/features/keys/pages/RegisterKeyPage';
 import { EditKeyPage } from '@/app/features/keys/pages/EditKeyPage';
 import { ProfilePage } from '@/app/features/profile/pages/ProfilePage';
 import { ReceivePage } from '@/app/features/receive/pages/ReceivePage';
-/**
- * Definição central de todas as rotas da aplicação.
- * Adicione novas rotas aqui conforme as features forem criadas.
- */
+import { AdminPage } from '@/app/features/admin/pages/AdminPage';
+import { AccountPendingPage } from '@/app/features/admin/pages/AccountPendingPage';
+
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Tela inicial — splash com botões Entrar / Cadastre-se */}
+      {/* Splash */}
       <Route path="/" element={<InitPage />} />
 
-      {/* Auth — sem BottomNav */}
+      {/* Auth — sem layout */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
-      {/* Rotas com BottomNav — conteúdo fica no <Outlet> do AppShellLayout */}
+      {/* Conta pendente de aprovação */}
+      <Route path="/conta-pendente" element={<AccountPendingPage />} />
+
+      {/* Rotas autenticadas */}
       <Route element={<RequireSession />}>
         <Route element={<AppShellLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
@@ -43,10 +43,15 @@ export function AppRoutes() {
           </Route>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/ajustes" element={<AjustesPage />} />
+
+          {/* Painel admin — protegido por role ADMIN/OWNER */}
+          <Route element={<RequireSession roles={['ADMIN', 'OWNER']} />}>
+            <Route path="/admin" element={<AdminPage />} />
+          </Route>
         </Route>
       </Route>
 
-      {/* Rota de fallback */}
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
