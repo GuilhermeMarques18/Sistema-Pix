@@ -6,8 +6,10 @@ import com.gc.sistem_pix.pix.dto.CreatePixKeyRequest;
 import com.gc.sistem_pix.pix.dto.PixKeyResponse;
 import com.gc.sistem_pix.pix.dto.PixKeyValidationResponse;
 import com.gc.sistem_pix.pix.dto.UpdatePixKeyRequest;
+import com.gc.sistem_pix.pix.dto.UpdatePixKeyStatusRequest;
 import com.gc.sistem_pix.pix.entity.PixKey;
 import com.gc.sistem_pix.pix.enums.PixKeyType;
+import com.gc.sistem_pix.pix.enums.PixKeyStatus;
 import com.gc.sistem_pix.pix.exception.InvalidPixKeyException;
 import com.gc.sistem_pix.pix.repository.PixKeyRepository;
 import com.gc.sistem_pix.user.entity.UserModel;
@@ -78,7 +80,7 @@ public class PixKeyService {
             throw new InvalidPixKeyException("Tipo da chave Pix é obrigatório");
         }
 
-        PixKey pixKey = pixKeyRepository.findByIdAndAccount_User_Id(id, authenticatedUser.getId())
+        PixKey pixKey = pixKeyRepository.findOwnedByIdForUpdate(id, authenticatedUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Chave Pix não encontrada"));
 
         if (pixKey.getType() == PixKeyType.CPF || pixKey.getType() == PixKeyType.CNPJ) {
@@ -114,6 +116,21 @@ public class PixKeyService {
         }
     }
 
+    @Transactional
+    public PixKeyResponse updateStatus(UUID id, UpdatePixKeyStatusRequest request, UserModel authenticatedUser) {
+        if (authenticatedUser == null || authenticatedUser.getId() == null) {
+            throw new InvalidPixKeyException("Usuário autenticado é obrigatório");
+        }
+        if (id == null || request == null || request.status() == null) {
+            throw new InvalidPixKeyException("ID e status da chave Pix são obrigatórios");
+        }
+
+        PixKey pixKey = pixKeyRepository.findOwnedByIdForUpdate(id, authenticatedUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Chave Pix não encontrada"));
+        pixKey.setStatus(request.status());
+        return toResponse(pixKeyRepository.save(pixKey));
+    }
+
     @Transactional(readOnly = true)
     public PixKeyValidationResponse validate(PixKeyType type, String key) {
         String normalizedKey = normalizeAndValidateFormat(type, key);
@@ -124,14 +141,30 @@ public class PixKeyService {
                 pixKey.isPresent(),
                 type,
                 normalizedKey,
-                pixKey.map(value -> value.getAccount().getId()).orElse(null));
+                pixKey.filter(value -> value.getStatus() == PixKeyStatus.ATIVA)
+                        .map(value -> value.getAccount().getId()).orElse(null),
+                pixKey.map(PixKey::getStatus).orElse(null));
     }
 
     @Transactional(readOnly = true)
     public PixKey findByKeyForTransfer(PixKeyType type, String key) {
         String normalized = PixKeyNormalizer.normalize(type, key);
-        return pixKeyRepository.findByKey(normalized).filter(value -> value.getType() == type)
+        return requireActive(pixKeyRepository.findByKey(normalized), type);
+    }
+
+    @Transactional
+    public PixKey findByKeyForTransferForUpdate(PixKeyType type, String key) {
+        String normalized = PixKeyNormalizer.normalize(type, key);
+        return requireActive(pixKeyRepository.findByKeyForUpdate(normalized), type);
+    }
+
+    private PixKey requireActive(Optional<PixKey> result, PixKeyType type) {
+        PixKey pixKey = result.filter(value -> value.getType() == type)
                 .orElseThrow(() -> new ResourceNotFoundException("Chave Pix não encontrada"));
+        if (pixKey.getStatus() != PixKeyStatus.ATIVA) {
+            throw new InvalidPixKeyException("Chave Pix suspensa. O titular precisa desbloqueá-la para receber Pix.");
+        }
+        return pixKey;
     }
 
     @Transactional(readOnly = true)
@@ -216,6 +249,7 @@ public class PixKeyService {
                 pixKey.getAccount().getId(),
                 pixKey.getType(),
                 pixKey.getKey(),
-                pixKey.getCreatedAt());
+                pixKey.getCreatedAt(),
+                pixKey.getStatus());
     }
 }

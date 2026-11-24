@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +20,7 @@ import com.gc.sistem_pix.pix.dto.CreatePixKeyRequest;
 import com.gc.sistem_pix.pix.dto.PixKeyResponse;
 import com.gc.sistem_pix.pix.dto.PixKeyValidationResponse;
 import com.gc.sistem_pix.pix.dto.UpdatePixKeyRequest;
+import com.gc.sistem_pix.pix.dto.UpdatePixKeyStatusRequest;
 import com.gc.sistem_pix.pix.enums.PixKeyType;
 import com.gc.sistem_pix.pix.service.PixKeyService;
 import com.gc.sistem_pix.user.entity.UserModel;
@@ -92,6 +94,18 @@ public class PixKeyController {
     })
     public ResponseEntity<PixKeyResponse> update(@PathVariable UUID id, @Valid @RequestBody UpdatePixKeyRequest request, @AuthenticationPrincipal UserModel authenticatedUser) {
         return ResponseEntity.ok(pixKeyService.update(id, request, authenticatedUser));
+    }
+
+    @PatchMapping("/{id}/status")
+    @Operation(summary = "Suspende ou desbloqueia uma chave Pix da própria conta", description = "A suspensão mantém a chave reservada ao titular e impede novos recebimentos por ela.", tags = {"Chaves Pix"})
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Status atualizado"),
+            @ApiResponse(responseCode = "400", description = "Status ausente ou inválido"),
+            @ApiResponse(responseCode = "401", description = "Autenticação necessária"),
+            @ApiResponse(responseCode = "404", description = "Chave Pix não encontrada na conta do usuário")
+    })
+    public ResponseEntity<PixKeyResponse> updateStatus(@PathVariable UUID id, @Valid @RequestBody UpdatePixKeyStatusRequest request, @AuthenticationPrincipal UserModel authenticatedUser) {
+        return ResponseEntity.ok(pixKeyService.updateStatus(id, request, authenticatedUser));
     }
 
     @GetMapping("/validate")

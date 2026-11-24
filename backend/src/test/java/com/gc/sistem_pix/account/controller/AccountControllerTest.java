@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,6 +21,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gc.sistem_pix.account.dto.AccountResponseDTO;
@@ -27,6 +31,7 @@ import com.gc.sistem_pix.account.dto.AccountUnblockRequestDTO;
 import com.gc.sistem_pix.account.enums.AccountStatus;
 import com.gc.sistem_pix.account.enums.AccountType;
 import com.gc.sistem_pix.account.service.AccountService;
+import com.gc.sistem_pix.user.entity.UserModel;
 
 @ExtendWith(MockitoExtension.class)
 class AccountControllerTest {
@@ -40,10 +45,21 @@ class AccountControllerTest {
     private AccountController accountController;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private UserModel authenticatedUser;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(accountController).build();
+        authenticatedUser = UserModel.builder().id(UUID.randomUUID()).name("Usuario Teste").build();
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                authenticatedUser, null, authenticatedUser.getAuthorities()));
+        mockMvc = MockMvcBuilders.standaloneSetup(accountController)
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -54,6 +70,8 @@ class AccountControllerTest {
                 accountId,
                 UUID.randomUUID(),
                 "Usuario Teste",
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 AccountStatus.BLOQUEADA,
                 AccountType.PESSOA_FISICA,
@@ -79,6 +97,8 @@ class AccountControllerTest {
                 UUID.randomUUID(),
                 "Usuario Teste",
                 BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
                 AccountStatus.DESBLOQUEADA,
                 AccountType.PESSOA_FISICA,
                 10,
@@ -97,13 +117,15 @@ class AccountControllerTest {
     @Test
     void deveDesbloquearPropriaContaComSucesso() throws Exception {
         UUID accountId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
+        UUID userId = authenticatedUser.getId();
         AccountUnblockRequestDTO request = new AccountUnblockRequestDTO("Senha@123", "Senha@123");
 
         AccountResponseDTO responseDTO = new AccountResponseDTO(
                 accountId,
                 userId,
                 "Usuario Teste",
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 AccountStatus.DESBLOQUEADA,
                 AccountType.PESSOA_FISICA,
@@ -119,6 +141,6 @@ class AccountControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DESBLOQUEADA"));
 
-        verify(accountService).unblockOwn(any(), any());
+        verify(accountService).unblockOwn(userId, request);
     }
 }

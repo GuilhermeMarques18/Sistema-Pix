@@ -1,27 +1,7 @@
 import { api } from '@/app/core/http';
 import type { PixKey, PixKeyStatus, PixKeyType } from '../types';
 import { normalizePhoneKey } from '../lib/formatPixKey';
-import type { PixKeyResponse as ApiPixKeyResponse, PixKeyType as ApiPixKeyType } from '@/app/shared/types/api.types';
-
-/**
- * RF23 — mude para true quando o backend tiver:
- *  - PATCH /api/pix/keys/{id}/status  body { status: 'ATIVA' | 'SUSPENSA' }
- *  - campo "status" no PixKeyResponse
- */
-const KEY_STATUS_MANAGEMENT_AVAILABLE = false;
-
-export class KeyEndpointUnavailableError extends Error {
-  constructor(action: string) {
-    super(`${action} ainda não está disponível: falta o endpoint no backend.`);
-    this.name = 'KeyEndpointUnavailableError';
-  }
-}
-
-type ApiPixKeyStatus = 'ATIVA' | 'SUSPENSA';
-
-interface PixKeyResponse extends ApiPixKeyResponse {
-  status?: ApiPixKeyStatus; // ainda não existe no backend
-}
+import type { PixKeyResponse, PixKeyStatus as ApiPixKeyStatus, PixKeyType as ApiPixKeyType } from '@/app/shared/types/api.types';
 
 const toApiType: Record<PixKeyType, ApiPixKeyType> = {
   cpf: 'CPF',
@@ -71,12 +51,6 @@ export const pixKeysService = {
 
   /** PATCH /api/pix/keys/{id}/status — suspender / desbloquear (RF23) */
   async setStatus(id: string, status: PixKeyStatus): Promise<PixKey> {
-    if (!KEY_STATUS_MANAGEMENT_AVAILABLE) {
-      throw new KeyEndpointUnavailableError(
-        status === 'active' ? 'Desbloquear chave' : 'Suspender chave',
-      );
-    }
-
     const { data } = await api.patch<PixKeyResponse>(`/api/pix/keys/${id}/status`, {
       status: toApiStatus[status],
     });

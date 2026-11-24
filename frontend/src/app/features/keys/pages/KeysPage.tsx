@@ -7,7 +7,7 @@ import type { PixKey } from '../types';
 
 export function KeysPage() {
   const navigate = useNavigate();
-  const { keys, isLoading, error, notice, reload, toggleStatus } = usePixKeys();
+  const { keys, isLoading, error, notice, statusMessage, changingKeyIds, reload, toggleStatus } = usePixKeys();
 
   function handleEdit(key: PixKey) {
     navigate(`/keys/${key.id}/edit`);
@@ -26,6 +26,9 @@ export function KeysPage() {
       />
 
       <div className="mt-6 flex flex-col gap-3 px-4">
+        <p className="text-xs text-text-secondary">
+          Suspender mantém a chave reservada para você, mas impede recebimentos por ela. Desbloqueie quando quiser voltar a usá-la.
+        </p>
         {isLoading && <p className="text-sm text-text-secondary">Carregando chaves...</p>}
 
         {error && (
@@ -43,6 +46,8 @@ export function KeysPage() {
           </p>
         )}
 
+        {statusMessage && <p role="status" className="rounded-lg bg-bg-input/40 px-3 py-2 text-xs text-brand-element">{statusMessage}</p>}
+
         {!isLoading && !error && keys.length === 0 && (
           <p className="text-sm text-text-secondary">
             Você ainda não tem chaves PIX. Toque no botão + Nova chave para cadastrar.
@@ -50,7 +55,7 @@ export function KeysPage() {
         )}
 
         {keys.map((key) => (
-          <KeyListItem key={key.id} pixKey={key} onEdit={handleEdit} onToggleStatus={toggleStatus} />
+          <KeyListItem key={key.id} pixKey={key} isChangingStatus={changingKeyIds.includes(key.id)} onEdit={handleEdit} onToggleStatus={toggleStatus} />
         ))}
       </div>
     </div>

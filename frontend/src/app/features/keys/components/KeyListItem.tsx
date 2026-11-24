@@ -6,13 +6,14 @@ import type { PixKey } from '../types';
 
 interface KeyListItemProps {
   pixKey: PixKey;
+  isChangingStatus?: boolean;
   // eslint-disable-next-line no-unused-vars
   onEdit: (pixKey: PixKey) => void;
   // eslint-disable-next-line no-unused-vars
   onToggleStatus: (pixKey: PixKey) => void;
 }
 
-export function KeyListItem({ pixKey, onEdit, onToggleStatus }: KeyListItemProps) {
+export function KeyListItem({ pixKey, isChangingStatus = false, onEdit, onToggleStatus }: KeyListItemProps) {
   const meta = pixKeyMeta[pixKey.type];
   const Icon = meta.icon;
   const isActive = pixKey.status === 'active';
@@ -39,6 +40,7 @@ export function KeyListItem({ pixKey, onEdit, onToggleStatus }: KeyListItemProps
         {canEdit && (
           <button
             type="button"
+            disabled={isChangingStatus}
             onClick={() => onEdit(pixKey)}
             aria-label={`Alterar chave ${meta.label}`}
             className="flex flex-col items-center gap-0.5 transition-colors hover:text-text"
@@ -49,12 +51,14 @@ export function KeyListItem({ pixKey, onEdit, onToggleStatus }: KeyListItemProps
         )}
         <button
           type="button"
+          disabled={isChangingStatus}
+          aria-busy={isChangingStatus}
           onClick={() => onToggleStatus(pixKey)}
           aria-label={`${isActive ? 'Suspender' : 'Desbloquear'} chave ${meta.label}`}
           className="flex flex-col items-center gap-0.5 transition-colors hover:text-text"
         >
           {isActive ? <ProhibitIcon className="h-4 w-4" /> : <CheckCircleIcon className="h-4 w-4" />}
-          {isActive ? 'Suspender' : 'Desbloquear'}
+          {isChangingStatus ? 'Salvando...' : isActive ? 'Suspender' : 'Desbloquear'}
         </button>
       </div>
     </div>

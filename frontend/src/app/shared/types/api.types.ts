@@ -38,6 +38,7 @@ export interface AccountSummary {
 
 export type AccountLimits = Pick<AccountSummary, 'transactionLimit' | 'pixLimit'>;
 export type PixKeyType = 'CPF' | 'CNPJ' | 'EMAIL' | 'CELULAR' | 'ALEATORIO';
+export type PixKeyStatus = 'ATIVA' | 'SUSPENSA';
 
 export interface PixKeyResponse {
   id: string;
@@ -45,6 +46,7 @@ export interface PixKeyResponse {
   tipo: PixKeyType;
   chave: string;
   criadoEm: string;
+  status: PixKeyStatus;
 }
 
 export interface PixKeyValidationResponse {
@@ -53,6 +55,7 @@ export interface PixKeyValidationResponse {
   tipo: PixKeyType;
   chave: string;
   contaDestinoId: string | null;
+  status: PixKeyStatus | null;
 }
 
 export interface PixTransactionResponse {

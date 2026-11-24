@@ -58,7 +58,8 @@ public class PixTransactionService {
         var previous = pixTransactionRepository.findByContaOrigemIdAndIdempotencyKey(sourceId, request.idempotencyKey());
         if (previous.isPresent()) return replay(previous.get(), fingerprint);
 
-        PixKey destinationKey = pixKeyService.findByKeyForTransfer(request.tipoChave(), canonicalKey);
+        // Serializa o envio com suspensão, desbloqueio e edição da mesma chave.
+        PixKey destinationKey = pixKeyService.findByKeyForTransferForUpdate(request.tipoChave(), canonicalKey);
         UUID destinationId = destinationKey.getAccount().getId();
         if (!destinationId.equals(request.contaDestinoId())) throw new InvalidPixTransactionException("O titular da chave mudou. Confira o destinatário novamente.");
         if (sourceId.equals(destinationId)) throw new InvalidPixTransactionException("A conta de origem deve ser diferente da conta de destino");

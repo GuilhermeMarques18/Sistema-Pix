@@ -2,6 +2,7 @@ package com.gc.sistem_pix.pix.entity;
 
 import com.gc.sistem_pix.account.entity.AccountModel;
 import com.gc.sistem_pix.pix.enums.PixKeyType;
+import com.gc.sistem_pix.pix.enums.PixKeyStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -52,6 +53,11 @@ public class PixKey {
 
     @Column(name = "chave", nullable = false, unique = true, length = 77)
     private String key;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private PixKeyStatus status = PixKeyStatus.ATIVA;
 
     @CreationTimestamp
     @Column(name = "criado_em", nullable = false, updatable = false)
