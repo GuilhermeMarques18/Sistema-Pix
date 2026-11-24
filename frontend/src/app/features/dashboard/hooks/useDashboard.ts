@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { extratoService } from '@/app/features/extrato/services/extrato.service';
-import type { AccountSummary, PixTransactionResponse } from '@/app/features/extrato/types/extrato.types';
+import type { AccountSummary, PixExtractItemResponse } from '@/app/features/extrato/types/extrato.types';
 import { getApiErrorMessage } from '@/app/shared/lib/apiError';
 import type { Transaction } from '../components/TransactionItem';
 
 export function useDashboard() {
   const [account, setAccount] = useState<AccountSummary | null>(null);
-  const [history, setHistory] = useState<PixTransactionResponse[]>([]);
+  const [history, setHistory] = useState<PixExtractItemResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +15,7 @@ export function useDashboard() {
     try {
       const [accountData, transactions] = await Promise.all([
         extratoService.getMyAccount(),
-        extratoService.getMyTransactions(),
+        extratoService.getMyTransactions('7'),
       ]);
       setAccount(accountData);
       setHistory(transactions);
@@ -28,18 +28,17 @@ export function useDashboard() {
 
   useEffect(() => { void reload(); }, [reload]);
 
-  // dataHora é a data local do backend, que também determina o limite diário.
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const transactionsUsed = history.filter((transaction) =>
-    transaction.contaOrigemId === account?.id && transaction.dataHora.slice(0, 10) === today,
+  const transactionsUsed = history.filter((t) =>
+    t.tipo === 'SAIDA' && t.dataHora.slice(0, 10) === today,
   ).length;
 
   const transactions: Transaction[] = [...history]
     .sort((a, b) => b.dataHora.localeCompare(a.dataHora))
     .slice(0, 5)
     .map((transaction) => {
-      const isCredit = transaction.contaDestinoId === account?.id;
+      const isCredit = transaction.tipo === 'ENTRADA';
       const timestamp = new Date(transaction.dataHora);
       return {
         id: transaction.idTransacao,

@@ -1,10 +1,19 @@
 import { api } from '@/app/core/http';
-import type { PixTransactionResponse, AccountSummary } from '../types/extrato.types';
+import type { PixExtractItemResponse, AccountSummary, PeriodFilter } from '../types/extrato.types';
 
 export const extratoService = {
-  async getMyTransactions(): Promise<PixTransactionResponse[]> {
-    const { data } = await api.get<PixTransactionResponse[]>('/api/pix/transactions/me');
-    return data;
+  async getMyTransactions(period?: PeriodFilter): Promise<PixExtractItemResponse[]> {
+    const params: Record<string, string | number> = {};
+
+    if (period && period !== 'all') {
+      params.ultimosDias = parseInt(period, 10);
+    }
+
+    const { data } = await api.get<{ transacoes: PixExtractItemResponse[] }>(
+      '/api/pix/transactions/history',
+      { params }
+    );
+    return data.transacoes;
   },
 
   async getMyAccount(): Promise<AccountSummary> {

@@ -1,11 +1,10 @@
 'use client';
 
 import { ArrowLineDown, ArrowLineUp } from '@phosphor-icons/react';
-import type { PixTransactionResponse, AccountSummary } from '../types/extrato.types';
+import type { PixExtractItemResponse } from '../types/extrato.types';
 
 interface ExtratoTransactionItemProps {
-  transaction: PixTransactionResponse;
-  account: AccountSummary;
+  transaction: PixExtractItemResponse;
 }
 
 function formatBRL(value: number): string {
@@ -30,45 +29,35 @@ function formatDateTime(isoString: string): { date: string; time: string } {
   return { date: dateLabel, time };
 }
 
-export function ExtratoTransactionItem({ transaction, account }: ExtratoTransactionItemProps) {
-  const isCredit = transaction.contaDestinoId === account.id;
+export function ExtratoTransactionItem({ transaction }: ExtratoTransactionItemProps) {
+  const isCredit = transaction.tipo === 'ENTRADA';
   const { date, time } = formatDateTime(transaction.dataHora);
-
-  // A outra conta envolvida na transação
-  const counterpartId = isCredit ? transaction.contaOrigemId : transaction.contaDestinoId;
-
-  // Exibe o ID da conta contraparte de forma legível (últimos 8 chars do UUID)
-  const counterpartLabel = counterpartId.replace(/-/g, '').slice(-11).replace(/(.{3})(.{3})(.{3})(.{2})/, '$1.$2.$3-$4');
 
   return (
     <div className="flex items-center gap-3 rounded-xl bg-bg-input px-4 py-3">
-      {/* Icon */}
-      <div
-        className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full
-          ${isCredit ? 'text-brand-element' : 'text-text-negative'}`}
-      >
-        {isCredit ? (
-          <ArrowLineDown size={20} weight="bold" />
-        ) : (
-          <ArrowLineUp size={20} weight="bold" />
-        )}
+      {/* Ícone */}
+      <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full
+        ${isCredit ? 'text-brand-element' : 'text-text-negative'}`}>
+        {isCredit
+          ? <ArrowLineDown size={20} weight="bold" />
+          : <ArrowLineUp size={20} weight="bold" />}
       </div>
 
-      {/* Descrição + contraparte */}
+      {/* Descrição */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-text truncate">
           {transaction.descricao ?? (isCredit ? 'Pix recebido' : 'Pix enviado')}
         </p>
-        <p className="text-xs text-text-secondary truncate">{counterpartLabel}</p>
+        <p className="text-xs text-text-secondary truncate">
+          {transaction.contaContraparteId
+            ? transaction.contaContraparteId.slice(0, 8) + '...'
+            : '—'}
+        </p>
       </div>
 
       {/* Valor + data */}
       <div className="text-right flex-shrink-0">
-        <p
-          className={`text-sm font-semibold ${
-            isCredit ? 'text-brand-element' : 'text-text-negative'
-          }`}
-        >
+        <p className={`text-sm font-semibold ${isCredit ? 'text-brand-element' : 'text-text-negative'}`}>
           {isCredit ? '+ ' : '- '}
           {formatBRL(transaction.valor)}
         </p>

@@ -1,11 +1,10 @@
 'use client';
 
 import { ExtratoTransactionItem } from './ExtratoTransactionItem';
-import type { PixTransactionResponse, AccountSummary } from '../types/extrato.types';
+import type { PixExtractItemResponse } from '../types/extrato.types';
 
 interface ExtratoTransactionListProps {
-  transactions: PixTransactionResponse[];
-  account: AccountSummary;
+  transactions: PixExtractItemResponse[];
   isLoading: boolean;
 }
 
@@ -27,7 +26,6 @@ function TransactionSkeleton() {
 
 export function ExtratoTransactionList({
   transactions,
-  account,
   isLoading,
 }: ExtratoTransactionListProps) {
   if (isLoading) {
@@ -54,7 +52,6 @@ export function ExtratoTransactionList({
         <ExtratoTransactionItem
           key={transaction.idTransacao}
           transaction={transaction}
-          account={account}
         />
       ))}
     </div>
