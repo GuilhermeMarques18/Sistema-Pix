@@ -6,100 +6,133 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
-
+import java.util.HexFormat;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.AccessDeniedException;
 import com.gc.sistem_pix.account.entity.AccountModel;
 import com.gc.sistem_pix.account.enums.AccountStatus;
 import com.gc.sistem_pix.account.exception.AccountBlockedException;
 import com.gc.sistem_pix.account.repository.AccountRepository;
-import com.gc.sistem_pix.pix.dto.PixExtractItemResponse;
-import com.gc.sistem_pix.pix.dto.PixExtractResponse;
-import com.gc.sistem_pix.pix.dto.PixTransactionRequest;
-import com.gc.sistem_pix.pix.dto.PixTransactionResponse;
+import com.gc.sistem_pix.pix.dto.*;
 import com.gc.sistem_pix.pix.entity.PixKey;
 import com.gc.sistem_pix.pix.entity.PixTransaction;
 import com.gc.sistem_pix.pix.enums.TipoOperacaoPix;
+import com.gc.sistem_pix.pix.event.PixTransferCompletedEvent;
 import com.gc.sistem_pix.pix.exception.InvalidPixTransactionException;
+import com.gc.sistem_pix.pix.exception.PixLimitExceededException;
 import com.gc.sistem_pix.pix.repository.PixTransactionRepository;
 import com.gc.sistem_pix.user.entity.UserModel;
+import com.gc.sistem_pix.user.enums.UserRole;
 import com.gc.sistem_pix.user.exception.ResourceNotFoundException;
-
+import com.gc.sistem_pix.user.exception.DuplicateResourceException;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class PixTransactionService {
-
     private final PixTransactionRepository pixTransactionRepository;
     private final AccountRepository accountRepository;
     private final PixKeyService pixKeyService;
-    private final PixNotificationService pixNotificationService;
+    private final PixRecipientService recipientService;
+    private final PasswordEncoder passwordEncoder;
+    private final ApplicationEventPublisher events;
 
-    @Transactional
+    @Transactional(noRollbackFor = PixLimitExceededException.class)
     public PixTransactionResponse create(PixTransactionRequest request, UserModel authenticatedUser) {
         validateRequest(request, authenticatedUser);
-
-        AccountModel sourceAccount = accountRepository.findByUserId(authenticatedUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Conta bancária não encontrada para o usuário autenticado"));
-
-        PixKey destinationKey = pixKeyService.findByKeyForTransfer(request.chavePix());
-        UUID sourceAccountId = sourceAccount.getId();
-        UUID destinationAccountId = destinationKey.getAccount().getId();
-
-        if (sourceAccountId.equals(destinationAccountId)) {
-            throw new InvalidPixTransactionException(
-                    "A conta de origem deve ser diferente da conta de destino");
+        if (!authenticatedUser.isEnabled() || authenticatedUser.getPassword() == null
+                || !passwordEncoder.matches(request.password(), authenticatedUser.getPassword())) {
+            throw new InvalidPixTransactionException("Senha incorreta. Use a senha de acesso à sua conta.");
         }
 
+        String canonicalKey = PixKeyNormalizer.normalize(request.tipoChave(), request.chavePix());
+        String fingerprint = fingerprint(request, canonicalKey);
+        UUID sourceId = accountRepository.findAccountIdByUserId(authenticatedUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Conta bancária não encontrada para o usuário autenticado"));
+        var previous = pixTransactionRepository.findByContaOrigemIdAndIdempotencyKey(sourceId, request.idempotencyKey());
+        if (previous.isPresent()) return replay(previous.get(), fingerprint);
+
+        PixKey destinationKey = pixKeyService.findByKeyForTransfer(request.tipoChave(), canonicalKey);
+        UUID destinationId = destinationKey.getAccount().getId();
+        if (!destinationId.equals(request.contaDestinoId())) throw new InvalidPixTransactionException("O titular da chave mudou. Confira o destinatário novamente.");
+        if (sourceId.equals(destinationId)) throw new InvalidPixTransactionException("A conta de origem deve ser diferente da conta de destino");
+
+        // A projeção de sourceId acima evita carregar saldo antes de adquirir as travas.
         AccountModel originAccount;
         AccountModel destinationAccount;
-
-        if (sourceAccountId.compareTo(destinationAccountId) < 0) {
-            originAccount = findAccountForUpdate(sourceAccountId);
-            destinationAccount = findAccountForUpdate(destinationAccountId);
+        if (sourceId.compareTo(destinationId) < 0) {
+            originAccount = findAccountForUpdate(sourceId);
+            destinationAccount = findAccountForUpdate(destinationId);
         } else {
-            destinationAccount = findAccountForUpdate(destinationAccountId);
-            originAccount = findAccountForUpdate(sourceAccountId);
+            destinationAccount = findAccountForUpdate(destinationId);
+            originAccount = findAccountForUpdate(sourceId);
         }
 
-        if (!originAccount.isAvailableForPix()) {
-            if (originAccount.getStatus() == AccountStatus.BLOQUEADA) {
-                throw new AccountBlockedException("Conta de origem bloqueada por suspeita de fraude");
-            }
-            throw new InvalidPixTransactionException("Conta de origem indisponível para Pix");
-        }
-
-        if (!destinationAccount.isAvailableForPix()) {
-            if (destinationAccount.getStatus() == AccountStatus.BLOQUEADA) {
-                throw new AccountBlockedException("Conta de destino bloqueada por suspeita de fraude");
-            }
-            throw new InvalidPixTransactionException("Conta de destino indisponível para Pix");
-        }
-
+        // Outro pedido pode ter terminado enquanto esta requisição aguardava a trava.
+        previous = pixTransactionRepository.findByContaOrigemIdAndIdempotencyKey(sourceId, request.idempotencyKey());
+        if (previous.isPresent()) return replay(previous.get(), fingerprint);
+        validateAccount(originAccount, "origem");
+        validateAccount(destinationAccount, "destino");
         validateFraudLimits(originAccount, request.valor());
+        PixRecipientResponse recipient = recipientService.describe(destinationKey);
 
         originAccount.debit(request.valor());
         destinationAccount.credit(request.valor());
-
         accountRepository.save(originAccount);
         accountRepository.save(destinationAccount);
-
         PixTransaction transaction = PixTransaction.builder()
-                .contaOrigemId(originAccount.getId())
-                .contaDestinoId(destinationAccount.getId())
-                .valor(request.valor())
+                .contaOrigemId(sourceId)
+                .contaDestinoId(destinationId)
+                .valor(request.valor().setScale(2))
                 .descricao(request.descricao())
+                .idempotencyKey(request.idempotencyKey())
+                .requestFingerprint(fingerprint)
+                .chavePix(canonicalKey)
+                .tipoChave(request.tipoChave())
+                .nomeDestinatario(recipient.nome())
+                .documentoDestinatarioMascarado(recipient.documentoMascarado())
                 .build();
+        PixTransaction saved = pixTransactionRepository.saveAndFlush(transaction);
+        events.publishEvent(new PixTransferCompletedEvent(originAccount.getUser(), destinationAccount.getUser(), saved));
+        return toResponse(saved);
+    }
 
-        PixTransaction savedTransaction = pixTransactionRepository.save(transaction);
+    private void validateAccount(AccountModel account, String side) {
+        if (!account.isAvailableForPix() || !account.getUser().isEnabled()) {
+            if (account.getStatus() == AccountStatus.BLOQUEADA) throw new AccountBlockedException("Conta de " + side + " bloqueada");
+            throw new InvalidPixTransactionException("Conta de " + side + " indisponível para Pix");
+        }
+    }
 
-        pixNotificationService.notifyDebit(originAccount.getUser(), savedTransaction);
-        pixNotificationService.notifyCredit(destinationAccount.getUser(), savedTransaction);
+    private PixTransactionResponse replay(PixTransaction transaction, String fingerprint) {
+        if (!fingerprint.equals(transaction.getRequestFingerprint())) throw new DuplicateResourceException("Identificador de envio já utilizado com outros dados");
+        return toResponse(transaction);
+    }
 
-        return toResponse(savedTransaction);
+    private String fingerprint(PixTransactionRequest request, String key) {
+        String content = String.join("\n", request.tipoChave().name(), key, request.contaDestinoId().toString(),
+                request.valor().setScale(2).toPlainString(), request.descricao() == null ? "" : request.descricao());
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("Algoritmo de integridade indisponível", exception);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public PixTransactionResponse findById(UUID id, UserModel user) {
+        PixTransaction transaction = pixTransactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Transação Pix não encontrada"));
+        UUID accountId = accountRepository.findAccountIdByUserId(user.getId()).orElse(null);
+        boolean participant = transaction.getContaOrigemId().equals(accountId) || transaction.getContaDestinoId().equals(accountId);
+        if (!participant && user.getRole() != UserRole.ADMIN && user.getRole() != UserRole.OWNER) throw new AccessDeniedException("Transação de terceiros");
+        return toResponse(transaction);
     }
 
     @Transactional(readOnly = true)
@@ -130,27 +163,16 @@ public class PixTransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada: " + accountId));
     }
 
-    private void validateRequest(PixTransactionRequest request, UserModel authenticatedUser) {
-        if (request == null) {
-            throw new InvalidPixTransactionException("Dados da transação são obrigatórios");
+    private void validateRequest(PixTransactionRequest request, UserModel user) {
+        if (request == null || user == null || user.getId() == null) throw new InvalidPixTransactionException("Dados da transação e usuário autenticado são obrigatórios");
+        if (request.tipoChave() == null || request.chavePix() == null || request.chavePix().isBlank()
+                || request.chavePix().length() > 77 || request.contaDestinoId() == null || request.idempotencyKey() == null) {
+            throw new InvalidPixTransactionException("Informe tipo, chave, destinatário confirmado e identificador de envio");
         }
-
-        if (authenticatedUser == null || authenticatedUser.getId() == null) {
-            throw new InvalidPixTransactionException("Usuário autenticado é obrigatório");
-        }
-
-        if (request.chavePix() == null || request.chavePix().isBlank()) {
-            throw new InvalidPixTransactionException("Chave Pix de destino é obrigatória");
-        }
-
-        if (request.valor() == null) {
-            throw new InvalidPixTransactionException("Valor da transação é obrigatório");
-        }
-
-        if (request.valor().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidPixTransactionException("Valor da transação deve ser maior que zero");
-        }
-
+        if (request.valor() == null || request.valor().signum() <= 0 || request.valor().scale() > 2
+                || request.valor().precision() - request.valor().scale() > 17) throw new InvalidPixTransactionException("Informe valor positivo com até duas casas decimais");
+        if (request.password() == null || request.password().isBlank() || request.password().getBytes(StandardCharsets.UTF_8).length > 72) throw new InvalidPixTransactionException("Informe sua senha de acesso");
+        if (request.descricao() != null && request.descricao().length() > 100) throw new InvalidPixTransactionException("Descrição deve ter no máximo 100 caracteres");
     }
 
     private void validateFraudLimits(AccountModel originAccount, BigDecimal valor) {
@@ -159,7 +181,7 @@ public class PixTransactionService {
                 && valor.compareTo(BigDecimal.valueOf(originAccount.getPixLimit())) > 0) {
             originAccount.block();
             accountRepository.save(originAccount);
-            throw new AccountBlockedException(String.format(
+            throw new PixLimitExceededException(String.format(
                     "Suspeita de fraude: valor da transação (R$ %s) excede o limite Pix permitido (R$ %s)",
                     valor, originAccount.getPixLimit()));
         }
@@ -173,7 +195,7 @@ public class PixTransactionService {
             if (transacoesHoje >= originAccount.getTransactionLimit()) {
                 originAccount.block();
                 accountRepository.save(originAccount);
-                throw new AccountBlockedException(String.format(
+                throw new PixLimitExceededException(String.format(
                         "Suspeita de fraude: limite diário de transações (%d) atingido",
                         originAccount.getTransactionLimit()));
             }
@@ -187,7 +209,11 @@ public class PixTransactionService {
                 transaction.getContaDestinoId(),
                 transaction.getDescricao(),
                 transaction.getValor(),
-                transaction.getDataHora());
+                transaction.getDataHora(),
+                transaction.getChavePix(),
+                transaction.getTipoChave(),
+                transaction.getNomeDestinatario(),
+                transaction.getDocumentoDestinatarioMascarado());
     }
 
     @Transactional(readOnly = true)

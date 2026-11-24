@@ -2,6 +2,7 @@ package com.gc.sistem_pix.pix.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,8 @@ import org.springframework.data.repository.query.Param;
 import com.gc.sistem_pix.pix.entity.PixTransaction;
 
 public interface PixTransactionRepository extends JpaRepository<PixTransaction, UUID> {
+
+    Optional<PixTransaction> findByContaOrigemIdAndIdempotencyKey(UUID accountId, UUID idempotencyKey);
 
     List<PixTransaction> findAllByOrderByDataHoraDesc();
 

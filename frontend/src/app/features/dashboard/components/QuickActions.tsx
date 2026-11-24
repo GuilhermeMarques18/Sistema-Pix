@@ -11,18 +11,18 @@ import { useNavigate } from 'react-router-dom';
 import { SendPixFlow } from '@/app/features/extrato/pix-send';
 
 interface QuickActionsProps {
-  availableBalance: number;
-  pixLimit: number;
+  onRefresh: () => Promise<unknown>;
+  blocked: boolean;
 }
 
-export function QuickActions({ availableBalance, pixLimit }: QuickActionsProps) {
+export function QuickActions({ onRefresh, blocked }: QuickActionsProps) {
   const navigate = useNavigate();
   const [sendPixOpen, setSendPixOpen] = useState(false);
 
   const actions = [
-    { icon: ArrowLineDown, label: 'Receber', onClick: () => {} },
-    { icon: ArrowLineUp,   label: 'Enviar',  onClick: () => setSendPixOpen(true) },
-    { icon: CalendarBlank, label: 'Agendar', onClick: () => {} },
+    { icon: ArrowLineDown, label: 'Receber', onClick: () => navigate('/receive'), disabled: false },
+    { icon: ArrowLineUp, label: 'Enviar', onClick: () => setSendPixOpen(true), disabled: blocked },
+    { icon: CalendarBlank, label: 'Agendar', onClick: () => {}, disabled: true },
     { icon: ListBullets,   label: 'Extrato', onClick: () => navigate('/extrato') },
   ];
 
@@ -30,13 +30,15 @@ export function QuickActions({ availableBalance, pixLimit }: QuickActionsProps) 
     <>
       <div className="px-4 pt-5 pb-2">
         <div className="grid grid-cols-4 gap-2">
-          {actions.map(({ icon: Icon, label, onClick }) => (
+          {actions.map(({ icon: Icon, label, onClick, disabled }) => (
             <button
               key={label}
               onClick={onClick}
-              className="flex flex-col items-center gap-2 rounded-xl bg-bg-input p-4 text-brand-element
+              disabled={disabled}
+              title={label === 'Agendar' ? 'Agendamentos ainda indisponíveis' : undefined}
+              className="flex flex-col items-center gap-2 rounded-xl bg-bg-input p-3 sm:p-4 text-brand-element
                 hover:bg-bg-input-hover active:scale-95 transition-all duration-150
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-logo"
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-logo disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label={label}
             >
               <Icon size={28} weight="regular" />
@@ -48,9 +50,8 @@ export function QuickActions({ availableBalance, pixLimit }: QuickActionsProps) 
 
       {sendPixOpen && (
         <SendPixFlow
-          availableBalance={availableBalance}
-          pixLimit={pixLimit}
-          onClose={() => setSendPixOpen(false)}
+          onCompleted={onRefresh}
+          onClose={() => { setSendPixOpen(false); void onRefresh(); }}
         />
       )}
     </>

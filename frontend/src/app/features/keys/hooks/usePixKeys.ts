@@ -48,7 +48,7 @@ export function usePixKeys() {
   }
 
   /** Altera o valor da chave. Lança erro para a tela de edição exibir. */
-  async function updateKey(target: PixKey, value: string): Promise<PixKey> {
+  async function updateKey(target: PixKey, value?: string): Promise<PixKey> {
     const updated = await pixKeysService.update(target.id, target.type, value);
     setKeys((prev) => prev.map((k) => (k.id === updated.id ? updated : k)));
     return updated;

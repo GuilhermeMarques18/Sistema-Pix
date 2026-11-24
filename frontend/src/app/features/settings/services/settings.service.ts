@@ -1,11 +1,7 @@
 import { api } from '@/app/core/http';
 
-export interface AccountLimits {
-  transactionLimit: number;
-  pixLimit: number;
-}
-
-export type NotificationChannel = 'EMAIL' | 'SMS';
+import type { AccountLimits, NotificationChannel } from '@/app/shared/types/api.types';
+export type { AccountLimits, NotificationChannel } from '@/app/shared/types/api.types';
 
 export const settingsService = {
   /** GET /accounts/me — limites atuais da conta */

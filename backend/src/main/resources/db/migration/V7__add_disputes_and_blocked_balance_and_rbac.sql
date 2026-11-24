@@ -34,37 +34,3 @@ CREATE INDEX idx_disputa_transacao ON disputa_pix (id_transacao);
 CREATE INDEX idx_disputa_solicitante ON disputa_pix (id_conta_solicitante);
 CREATE INDEX idx_disputa_destino ON disputa_pix (id_conta_destino);
 CREATE INDEX idx_disputa_status ON disputa_pix (status);
-
-INSERT INTO usuario (id_usuario, nome, email, telefone, senha, role, ativo, criado_em)
-VALUES (
-    'a0000000-0000-0000-0000-000000000001',
-    'Administrador Chefe (Owner)',
-    'admin@gmail.com',
-    '21972672346',
-    '$2a$10$IO13MsXkkvAay0a7Br6fzOOYkAtvbxl/aqqF2I7DC7jfZhSGZeJeq', --Senha: admin
-    'OWNER',
-    TRUE,
-    CURRENT_TIMESTAMP
-);
-
-INSERT INTO pessoa_fisica (id_pessoa_fisica, id_usuario, cpf, criado_em)
-VALUES (
-    'b0000000-0000-0000-0000-000000000001',
-    'a0000000-0000-0000-0000-000000000001',
-    '00000000001',
-    CURRENT_TIMESTAMP
-);
-
-INSERT INTO conta_bancaria (id_conta_bancaria, id_usuario, saldo, saldo_bloqueado, status, tipo, limite_transacoes, limite_pix, ativo, criado_em)
-VALUES (
-    'c0000000-0000-0000-0000-000000000001',
-    'a0000000-0000-0000-0000-000000000001',
-    10000.00,
-    0.00,
-    'DESBLOQUEADA',
-    'PESSOA_FISICA',
-    100,
-    50000,
-    TRUE,
-    CURRENT_TIMESTAMP
-);

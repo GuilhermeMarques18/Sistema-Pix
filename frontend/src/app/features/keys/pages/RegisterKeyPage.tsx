@@ -9,6 +9,7 @@ import { Button } from '@/app/shared/components/ui/button';
 import { getApiErrorMessage } from '@/app/shared/lib/apiError';
 import { useCurrentUser } from '@/app/shared/hooks';
 import { pixKeyMeta } from '../lib/pixKeyMeta';
+import { formatPhoneInput, formatPixKey } from '../lib/formatPixKey';
 import { usePixKeys } from '../hooks/usePixKeys';
 import { registerKeySchema, type RegisterKeyFormData } from '../schemas/registerKey.schema';
 import type { PixKeyType } from '../types';
@@ -17,7 +18,7 @@ export function RegisterKeyPage() {
   const params = useParams<{ type: string }>();
   const navigate = useNavigate();
   const { createKey } = usePixKeys();
-  const { user } = useCurrentUser();
+  const { user, error: userError } = useCurrentUser();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Os hooks vêm sempre antes de qualquer return antecipado (regra dos hooks)
@@ -25,6 +26,9 @@ export function RegisterKeyPage() {
   const type = (isKnownType ? params.type : 'cpf') as PixKeyType;
   const meta = pixKeyMeta[type];
   const isRandom = type === 'random';
+  const isCpf = type === 'cpf';
+  const isDocument = isCpf || type === 'cnpj';
+  const incompatibleDocument = !!user && ((isCpf && user.tipoPessoa !== 'FISICA') || (type === 'cnpj' && user.tipoPessoa !== 'JURIDICA'));
 
   const schema = useMemo(() => registerKeySchema(type), [type]);
   const {
@@ -38,9 +42,9 @@ export function RegisterKeyPage() {
     mode: 'onChange',
     defaultValues: { value: '' },
   });
+  const valueField = register('value');
 
-  // O backend só aceita a chave se pertencer ao próprio usuário (CPF, e-mail ou telefone dele),
-  // então já sugerimos o valor do cadastro.
+  // O CPF vem da conta; e-mail e telefone são apenas sugeridos e podem ser alterados.
   useEffect(() => {
     if (!user || isRandom) return;
     const own: Partial<Record<PixKeyType, string>> = {
@@ -50,17 +54,18 @@ export function RegisterKeyPage() {
       phone: user.telefone,
     };
     const suggestion = own[type];
-    if (suggestion) setValue('value', suggestion, { shouldValidate: true });
+    if (suggestion) setValue('value', type === 'phone' ? formatPhoneInput(suggestion) : suggestion, { shouldValidate: true });
   }, [user, type, isRandom, setValue]);
 
-  if (!isKnownType) return null;
+  if (!isKnownType) return <p role="alert" className="p-4 text-text-negative">Tipo de chave inválido.</p>;
+  if (incompatibleDocument) return <p role="alert" className="p-4 text-text-negative">Este documento não corresponde ao tipo da sua conta. <button className="underline" onClick={() => navigate('/keys/new')}>Escolher outra chave</button></p>;
 
   const value = watch('value');
 
   async function onSubmit(data: RegisterKeyFormData) {
     setSubmitError(null);
     try {
-      await createKey(type, data.value);
+      await createKey(type, isDocument ? undefined : data.value);
       navigate('/keys');
     } catch (err) {
       setSubmitError(getApiErrorMessage(err, 'Não foi possível cadastrar a chave.'));
@@ -83,13 +88,31 @@ export function RegisterKeyPage() {
           {!isRandom && (
             <>
               <Label htmlFor="pix-key-value">{meta.label}</Label>
-              <Input
-                id="pix-key-value"
-                className="mt-2"
-                placeholder={type === 'email' ? 'seuemail@exemplo.com' : ''}
-                {...register('value')}
-              />
-              {value && value.length > 0 && (
+              {isDocument ? (
+                <>
+                  <input type="hidden" {...valueField} />
+                  <p id="pix-key-value" className="mt-2 text-sm text-text">
+                    {user ? formatPixKey(type, user.documento) : 'Carregando documento da conta...'}
+                  </p>
+                  <p className="mt-1 text-xs text-text-secondary">O documento da sua conta será usado automaticamente.</p>
+                </>
+              ) : (
+                <Input
+                  id="pix-key-value"
+                  className="mt-2"
+                  placeholder={type === 'email' ? 'seuemail@exemplo.com' : ''}
+                  type={type === 'phone' ? 'tel' : 'text'}
+                  {...valueField}
+                  onChange={(event) => {
+                    if (type === 'phone') {
+                      setValue('value', formatPhoneInput(event.target.value), { shouldValidate: true });
+                    } else {
+                      void valueField.onChange(event);
+                    }
+                  }}
+                />
+              )}
+              {!isDocument && value && value.length > 0 && (
                 <p
                   className={`mt-1 text-xs ${errors.value ? 'text-text-negative' : 'text-brand-element'}`}
                 >
@@ -100,13 +123,14 @@ export function RegisterKeyPage() {
           )}
 
           {submitError && <p className="mt-3 text-sm text-text-negative">{submitError}</p>}
+          {userError && <p className="mt-3 text-sm text-text-negative">{userError}</p>}
         </div>
 
         <Button
           type="submit"
           className="w-full"
           size="lg"
-          disabled={(!isRandom && !isValid) || isSubmitting}
+          disabled={(!isRandom && !isValid) || !user || isSubmitting}
         >
           {isSubmitting ? 'Enviando...' : isRandom ? 'Gerar chave' : 'Confirmar'}
         </Button>

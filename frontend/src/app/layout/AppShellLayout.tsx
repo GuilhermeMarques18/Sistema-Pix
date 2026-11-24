@@ -16,7 +16,7 @@ export function AppShellLayout() {
       <SideNav />
 
       {/* Área de conteúdo */}
-      <div className="flex-1 flex flex-col">
+      <div className="min-w-0 flex-1 flex flex-col">
         <main className="w-full flex-1 overflow-y-auto pb-24 md:pb-8">
           <Outlet />
         </main>

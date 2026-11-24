@@ -16,7 +16,7 @@ export function KeyListItem({ pixKey, onEdit, onToggleStatus }: KeyListItemProps
   const meta = pixKeyMeta[pixKey.type];
   const Icon = meta.icon;
   const isActive = pixKey.status === 'active';
-  const isRandom = pixKey.type === 'random';
+  const canEdit = pixKey.type === 'email' || pixKey.type === 'phone' || pixKey.type === 'random';
 
   return (
     <div className="flex items-center justify-between rounded-xl bg-bg-input/40 px-4 py-3">
@@ -36,7 +36,7 @@ export function KeyListItem({ pixKey, onEdit, onToggleStatus }: KeyListItemProps
       </div>
 
       <div className="flex shrink-0 flex-col items-center gap-2 text-xs text-text-secondary">
-        {!isRandom && (
+        {canEdit && (
           <button
             type="button"
             onClick={() => onEdit(pixKey)}

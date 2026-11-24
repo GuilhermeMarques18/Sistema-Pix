@@ -6,12 +6,32 @@ import com.gc.sistem_pix.user.entity.UserModel;
 import com.gc.sistem_pix.user.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionalEventListener;
+import com.gc.sistem_pix.pix.event.PixTransferCompletedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
 public class PixNotificationService {
 
+    private static final Logger log = LoggerFactory.getLogger(PixNotificationService.class);
+
     private final EmailService emailService;
+
+    @TransactionalEventListener
+    public void afterTransferCommit(PixTransferCompletedEvent event) {
+        try {
+            notifyDebit(event.sender(), event.transaction());
+        } catch (RuntimeException exception) {
+            log.error("Falha na notificação de débito da transação {}", event.transaction().getIdTransacao());
+        }
+        try {
+            notifyCredit(event.recipient(), event.transaction());
+        } catch (RuntimeException exception) {
+            log.error("Falha na notificação de crédito da transação {}", event.transaction().getIdTransacao());
+        }
+    }
 
     public void notifyDebit(UserModel user, PixTransaction transaction) {
         if (!wantsEmail(user)) {

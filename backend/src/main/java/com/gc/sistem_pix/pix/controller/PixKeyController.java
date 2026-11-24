@@ -8,6 +8,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,6 +18,7 @@ import com.gc.sistem_pix.infra.exception.ApiErrorResponse;
 import com.gc.sistem_pix.pix.dto.CreatePixKeyRequest;
 import com.gc.sistem_pix.pix.dto.PixKeyResponse;
 import com.gc.sistem_pix.pix.dto.PixKeyValidationResponse;
+import com.gc.sistem_pix.pix.dto.UpdatePixKeyRequest;
 import com.gc.sistem_pix.pix.enums.PixKeyType;
 import com.gc.sistem_pix.pix.service.PixKeyService;
 import com.gc.sistem_pix.user.entity.UserModel;
@@ -76,6 +78,20 @@ public class PixKeyController {
             @AuthenticationPrincipal UserModel authenticatedUser) {
         return ResponseEntity.status(201)
                 .body(pixKeyService.create(request, authenticatedUser));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Altera uma chave Pix da própria conta ou regenera uma chave aleatória", tags = {"Chaves Pix"})
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Chave Pix atualizada"),
+            @ApiResponse(responseCode = "400", description = "Dados obrigatórios ausentes ou inválidos"),
+            @ApiResponse(responseCode = "401", description = "Autenticação necessária"),
+            @ApiResponse(responseCode = "404", description = "Chave Pix não encontrada na conta do usuário"),
+            @ApiResponse(responseCode = "409", description = "Chave Pix já cadastrada"),
+            @ApiResponse(responseCode = "422", description = "Formato inválido ou alteração da chave não permitida")
+    })
+    public ResponseEntity<PixKeyResponse> update(@PathVariable UUID id, @Valid @RequestBody UpdatePixKeyRequest request, @AuthenticationPrincipal UserModel authenticatedUser) {
+        return ResponseEntity.ok(pixKeyService.update(id, request, authenticatedUser));
     }
 
     @GetMapping("/validate")

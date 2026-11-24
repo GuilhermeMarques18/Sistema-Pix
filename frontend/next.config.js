@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
+const apiProxyTarget = (process.env.API_PROXY_TARGET || 'http://localhost:3000').replace(/\/+$/, '');
+
 const nextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   trailingSlash: true,
   images: {
     unoptimized: true,
@@ -8,11 +11,11 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3000/api/:path*', 
+        destination: `${apiProxyTarget}/api/:path*`,
       },
       {
-        source: '/accounts/:path*', // <--- ADICIONE ISSO AQUI
-        destination: 'http://localhost:3000/accounts/:path*', 
+        source: '/accounts/:path*',
+        destination: `${apiProxyTarget}/accounts/:path*`,
       },
     ];
   },

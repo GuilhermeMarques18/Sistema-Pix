@@ -33,7 +33,7 @@ public class SecurityFilter extends OncePerRequestFilter {
             UUID userId = tokenService.validateTokenAndGetUserId(token);
             if (userId != null) {
                 UserModel user = userRepository.findById(userId).orElse(null);
-                if (user != null) {
+                if (user != null && user.isEnabled()) {
                     var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
@@ -48,6 +48,6 @@ public class SecurityFilter extends OncePerRequestFilter {
         if (header == null || !header.startsWith("Bearer ")) {
             return null;
         }
-        return header.replace("Bearer ", "");
+        return header.substring(7).trim();
     }
 }

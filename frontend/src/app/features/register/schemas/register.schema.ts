@@ -47,20 +47,30 @@ export const registerSchema = z
   .object({
     name: z
       .string({ required_error: 'Nome obrigatório.' })
-      .min(3, 'O nome deve ter no mínimo 3 caracteres.'),
+      .trim()
+      .min(3, 'O nome deve ter no mínimo 3 caracteres.')
+      .max(150, 'O nome deve ter no máximo 150 caracteres.'),
     email: z
       .string({ required_error: 'E-mail obrigatório.' })
+      .trim()
+      .toLowerCase()
+      .max(255, 'O e-mail deve ter no máximo 255 caracteres.')
       .email('Informe um e-mail válido.'),
     telefone: z
       .string({ required_error: 'Telefone obrigatório.' })
-      .min(10, 'Informe um telefone válido com DDD.'),
+      .transform((value) => value.trim().replace(/[\s()-]/g, ''))
+      .pipe(z.string().regex(/^\+?[0-9]{10,13}$/, 'Informe um telefone válido com DDD.')),
     tipoPessoa: z.enum(['FISICA', 'JURIDICA']),
     documento: z
       .string({ required_error: 'Documento obrigatório.' })
-      .min(1, 'Documento obrigatório.'),
+      .transform((value) => value.replace(/[.\/\s-]/g, ''))
+      .pipe(z.string().regex(/^\d+$/, 'Informe apenas os dígitos do documento.')),
     password: z
       .string({ required_error: 'Senha obrigatória.' })
-      .min(6, 'A senha deve ter no mínimo 6 caracteres.'),
+      .min(6, 'A senha deve ter no mínimo 6 caracteres.')
+      .max(72, 'A senha deve ter no máximo 72 caracteres.')
+      .refine((value) => value.trim().length > 0, 'Senha obrigatória.')
+      .refine((value) => new TextEncoder().encode(value).length <= 72, 'A senha deve ocupar no máximo 72 bytes em UTF-8.'),
     confirmPassword: z
       .string({ required_error: 'Confirmação de senha obrigatória.' }),
   })

@@ -1,6 +1,7 @@
 package com.gc.sistem_pix.user.service;
 
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,6 +39,7 @@ public class UserService {
 
     @Transactional
     public UserResponseDTO createNaturalPerson(NaturalPersonDTO dto) {
+        validatePassword(dto.password());
         validateUserUniqueness(dto.email(), dto.telefone());
 
         if (pessoaFisicaRepository.existsByCpf(dto.cpf())) {
@@ -58,6 +60,7 @@ public class UserService {
 
     @Transactional
     public UserResponseDTO createLegalEntity(LegalEntityDTO dto) {
+        validatePassword(dto.password());
         validateUserUniqueness(dto.email(), dto.telefone());
 
         if (pessoaJuridicaRepository.existsByCnpj(dto.cnpj())) {
@@ -103,7 +106,7 @@ public class UserService {
         }
 
         if (dto.email() != null && !dto.email().equals(user.getEmail())) {
-            if (userRepository.existsByEmailAndIdNot(dto.email(), userId)) {
+            if (userRepository.existsByEmailIgnoreCaseAndIdNot(dto.email(), userId)) {
                 throw new DuplicateResourceException("E-mail já cadastrado");
             }
 
@@ -167,8 +170,14 @@ public class UserService {
                 .build();
     }
 
+    private void validatePassword(String password) {
+        if (password == null || password.isBlank() || password.length() < 6 || password.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new IllegalArgumentException("A senha deve ter pelo menos 6 caracteres e ocupar no máximo 72 bytes em UTF-8");
+        }
+    }
+
     private void validateUserUniqueness(String email, String telefone) {
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new DuplicateResourceException("Email já cadastrado: " + email);
         }
         if (userRepository.existsByTelefone(telefone)) {
@@ -206,6 +215,7 @@ public class UserService {
                         TypePerson.FISICA,
                         pessoa.getCpf(),
                         user.getRole(),
+                        user.getNotificationType(),
                         user.getCreatedUser()))
                 .orElseGet(() -> pessoaJuridicaRepository.findByUserId(user.getId())
                         .map(pessoa -> new UserResponseDTO(
@@ -216,6 +226,7 @@ public class UserService {
                                 TypePerson.JURIDICA,
                                 pessoa.getCnpj(),
                                 user.getRole(),
+                                user.getNotificationType(),
                                 user.getCreatedUser()))
                         .orElseThrow(() -> new IllegalStateException(
                                 "Usuário deve possuir pessoa física ou pessoa jurídica")));

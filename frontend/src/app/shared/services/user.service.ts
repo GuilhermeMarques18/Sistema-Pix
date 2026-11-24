@@ -1,37 +1,20 @@
 import { api } from '@/app/core/http';
 
-export interface CurrentAccount {
-  id: string;
-  userId: string;
-  ownerName: string;
-}
+import type { AccountSummary, UpdateUserPayload, UserProfile } from '@/app/shared/types/api.types';
 
-export interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  telefone: string;
-  tipoPessoa: 'FISICA' | 'JURIDICA';
-  documento: string;
-}
-
-export interface UpdateUserPayload {
-  name?: string;
-  email?: string;
-  telefone?: string;
-  notificationType?: 'EMAIL' | 'SMS';
-}
+export type { UpdateUserPayload, UserProfile } from '@/app/shared/types/api.types';
+export type CurrentAccount = AccountSummary;
 
 export const userService = {
-  /** GET /accounts/me — usado para descobrir o id do usuário logado */
-  async getMyAccount(): Promise<CurrentAccount> {
-    const { data } = await api.get<CurrentAccount>('/accounts/me');
+  /** GET /accounts/me */
+  async getMyAccount(): Promise<AccountSummary> {
+    const { data } = await api.get<AccountSummary>('/accounts/me');
     return data;
   },
 
-  /** GET /api/users/{id} */
-  async getUser(userId: string): Promise<UserProfile> {
-    const { data } = await api.get<UserProfile>(`/api/users/${userId}`);
+  /** GET /api/users/me */
+  async getMe(): Promise<UserProfile> {
+    const { data } = await api.get<UserProfile>('/api/users/me');
     return data;
   },
 

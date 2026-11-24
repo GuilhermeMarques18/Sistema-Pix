@@ -1,81 +1,20 @@
 'use client';
-
-import { Button } from '@/app/shared/components/ui/button';
 import { BackButton } from '@/app/shared/components/ui';
+import { Button } from '@/app/shared/components/ui/button';
 import type { SendPixFlowData } from '../types/pix-send.types';
 
-interface StepConfirmarContaProps {
-  flowData: SendPixFlowData;
-  onConfirm: () => void;
-  onBack: () => void;
-}
-
-interface DataFieldProps {
-  label: string;
-  value: string;
-  large?: boolean;
-}
-
-function DataField({ label, value, large = false }: DataFieldProps) {
+export function StepConfirmarConta({ flowData, onConfirm, onBack }: { flowData: SendPixFlowData; onConfirm: () => void; onBack: () => void }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-text-secondary">{label}</span>
-      {large ? (
-        <span className="text-xl font-bold text-text leading-snug">{value}</span>
-      ) : (
-        <span className="text-sm font-semibold text-text">{value}</span>
-      )}
-    </div>
-  );
-}
-
-export function StepConfirmarConta({
-  flowData,
-  onConfirm,
-  onBack,
-}: StepConfirmarContaProps) {
-  return (
-    <div className="flex flex-col h-full bg-bg">
-      {/* ── Header ── */}
-      <div className="px-4 pt-6 pb-2">
-        {/* Botão voltar */}
-        <BackButton onClick={onBack} />
-
-        {/* Título */}
-        <h1 className="text-title font-bold text-text leading-tight mt-5">Confira a conta</h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Confirme os dados de quem vai receber
-        </p>
-      </div>
-
-      {/* ── Dados do destinatário ── */}
-      <div className="flex flex-col flex-1 px-4 pt-6 gap-5">
-        {/* Nome */}
-        <DataField label="Nome" value={flowData.recipientName} large />
-
-        {/* Chave PIX */}
-        <DataField label="Chave PIX" value={flowData.chavePix} />
-
-        {/* CPF */}
-        <DataField label="CPF" value={flowData.recipientCpf} />
-
-        {/* Agência */}
-        <DataField label="Agência" value={flowData.recipientAgencia} />
-
-        {/* Conta */}
-        <DataField label="Conta" value={flowData.recipientAccount} />
-      </div>
-
-      {/* ── Botão ── */}
-      <div className="px-4 pb-8 pt-6">
-        <Button
-          type="button"
-          onClick={onConfirm}
-          className="w-full h-13 rounded-xl text-base font-semibold"
-        >
-          Continuar
-        </Button>
-      </div>
+    <div className="flex h-full flex-col gap-5 p-4 pt-6">
+      <BackButton onClick={onBack} />
+      <h1 className="text-title font-bold text-text">Confira o destinatário</h1>
+      <dl className="flex-1 space-y-4 text-text">
+        <div><dt className="text-xs text-text-secondary">Nome</dt><dd className="font-semibold">{flowData.recipientName}</dd></div>
+        {flowData.recipientDocument && <div><dt className="text-xs text-text-secondary">CPF/CNPJ</dt><dd>{flowData.recipientDocument}</dd></div>}
+        <div><dt className="text-xs text-text-secondary">Chave Pix</dt><dd className="break-all">{flowData.chavePix}</dd></div>
+        <div><dt className="text-xs text-text-secondary">ID da conta de destino</dt><dd className="break-all text-sm">{flowData.contaDestinoId}</dd></div>
+      </dl>
+      <Button className="mb-4 w-full" onClick={onConfirm}>Continuar</Button>
     </div>
   );
 }

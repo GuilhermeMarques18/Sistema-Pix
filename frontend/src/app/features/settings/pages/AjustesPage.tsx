@@ -8,17 +8,18 @@ import { Label } from '@/app/shared/components/ui/label';
 import { Input } from '@/app/shared/components/ui/input';
 import { Button } from '@/app/shared/components/ui/button';
 import { getApiErrorMessage } from '@/app/shared/lib/apiError';
+import { useCurrentUser } from '@/app/shared/hooks';
 import { limitsSchema, type LimitsFormData } from '../schemas/limits.schema';
 import { settingsService, type NotificationChannel } from '../services/settings.service';
 
 export function AjustesPage() {
   const navigate = useNavigate();
+  const { user, updateUser, reload } = useCurrentUser();
 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [limitsMessage, setLimitsMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // A API não informa o canal atual, então só mostramos o que o usuário escolher aqui.
-  const [channel, setChannel] = useState<NotificationChannel | null>(null);
+  const channel = user?.notificationType ?? null;
   const [channelMessage, setChannelMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [isSavingChannel, setIsSavingChannel] = useState(false);
 
@@ -52,6 +53,7 @@ export function AjustesPage() {
         transactionLimit: Number(data.transactionLimit),
         pixLimit: Number(data.pixLimit),
       });
+      await reload();
       setLimitsMessage({ ok: true, text: 'Limites atualizados com sucesso.' });
     } catch (err) {
       setLimitsMessage({ ok: false, text: getApiErrorMessage(err, 'Não foi possível salvar os limites.') });
@@ -62,8 +64,7 @@ export function AjustesPage() {
     setIsSavingChannel(true);
     setChannelMessage(null);
     try {
-      await settingsService.updateNotificationChannel(next);
-      setChannel(next);
+      await updateUser({ notificationType: next });
       setChannelMessage({ ok: true, text: 'Canal de notificação atualizado.' });
     } catch (err) {
       setChannelMessage({ ok: false, text: getApiErrorMessage(err, 'Não foi possível atualizar o canal.') });

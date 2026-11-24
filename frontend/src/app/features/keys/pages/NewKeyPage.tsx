@@ -4,12 +4,14 @@ import { PageHeader } from '@/app/shared/components/ui/page-header';
 import { pixKeyMeta } from '../lib/pixKeyMeta';
 import { usePixKeys } from '../hooks/usePixKeys';
 import type { PixKeyType } from '../types';
-
-const order: PixKeyType[] = ['cpf', 'email', 'phone', 'random'];
+import { useCurrentUser } from '@/app/shared/hooks';
+import { Button } from '@/app/shared/components/ui/button';
 
 export function NewKeyPage() {
   const navigate = useNavigate();
-  const { keys } = usePixKeys();
+  const { keys, isLoading, error, reload } = usePixKeys();
+  const { user } = useCurrentUser();
+  const order: PixKeyType[] = [user?.tipoPessoa === 'JURIDICA' ? 'cnpj' : 'cpf', 'email', 'phone', 'random'];
 
   // O backend só permite 1 chave por tipo na mesma conta
   const registeredTypes = new Set(keys.map((k) => k.type));
@@ -19,6 +21,8 @@ export function NewKeyPage() {
       <PageHeader title="Nova chave PIX" subtitle="Crie uma chave para fazer transferência" />
 
       <div className="mt-6 flex flex-col gap-3 px-4">
+        {isLoading && <p role="status" className="text-text-secondary">Carregando suas chaves...</p>}
+        {error && <div role="alert" className="text-text-negative">{error}<Button onClick={() => void reload()}>Tentar novamente</Button></div>}
         {order.map((type) => {
           const meta = pixKeyMeta[type];
           const Icon = meta.icon;
@@ -26,7 +30,7 @@ export function NewKeyPage() {
           return (
             <button
               key={type}
-              disabled={alreadyRegistered}
+              disabled={alreadyRegistered || isLoading || !!error || !user}
               onClick={() => navigate(`/keys/new/${type}`)}
               className="flex items-center justify-between rounded-xl bg-bg-input/40 px-4 py-3 text-left transition-colors hover:bg-bg-input active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-logo disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-bg-input/40 disabled:active:scale-100"
             >

@@ -8,7 +8,10 @@ interface LoginResponse {
 
 export const authService = {
   async login(credentials: LoginFormData): Promise<void> {
-    const { data } = await api.post<LoginResponse>('/api/auth/login', credentials);
+    const { data } = await api.post<LoginResponse>('/api/auth/login', {
+      email: credentials.email.trim().toLowerCase(),
+      password: credentials.password,
+    });
     tokenService.set(data.token);
   },
 

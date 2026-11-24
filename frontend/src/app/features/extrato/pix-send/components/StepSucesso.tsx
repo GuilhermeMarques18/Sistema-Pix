@@ -1,87 +1,38 @@
 'use client';
-
 import { CheckCircle } from '@phosphor-icons/react';
 import { Button } from '@/app/shared/components/ui/button';
-import type { SendPixFlowData } from '../types/pix-send.types';
+import type { PixTransactionResponse } from '@/app/shared/types/api.types';
 
-interface StepSucessoProps {
-  flowData: SendPixFlowData;
+interface Props {
+  receipt: PixTransactionResponse;
   onVoltar: () => void;
   onFazerNovoPix: () => void;
+  isLoading: boolean;
+  refreshError: string | null;
 }
-
-function formatBRL(value: number): string {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-export function StepSucesso({
-  flowData,
-  onVoltar,
-  onFazerNovoPix,
-}: StepSucessoProps) {
+export function StepSucesso({ receipt, onVoltar, onFazerNovoPix, isLoading, refreshError }: Props) {
+  const amount = receipt.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const fields = [
+    ['ID da transação', receipt.idTransacao],
+    ['Data e hora', new Date(receipt.dataHora).toLocaleString('pt-BR')],
+    ['Destinatário', receipt.nomeDestinatario],
+    ['CPF/CNPJ', receipt.documentoDestinatarioMascarado],
+    ['Chave Pix', receipt.chavePix],
+    ['ID da conta de destino', receipt.contaDestinoId],
+    ['Descrição', receipt.descricao],
+  ];
   return (
-    <div className="flex flex-col h-full px-4">
-      {/* Ícone de sucesso */}
-      <div className="flex flex-col items-center justify-center flex-1 gap-4">
-        <CheckCircle
-          size={72}
-          weight="fill"
-          className="text-brand-element"
-          aria-hidden="true"
-        />
-
-        <div className="text-center">
-          <h2 className="text-base font-bold text-text mb-1">
-            Você fez um PIX de {formatBRL(flowData.valor)}
-          </h2>
-          <p className="text-sm text-text-secondary">{flowData.recipientName}</p>
-        </div>
-
-        {/* Resumo */}
-        <div className="w-full rounded-xl bg-bg-input p-4 flex flex-col gap-2 mt-2">
-          <InfoLine label={flowData.chavePix} value="" highlight />
-          <div className="h-px bg-border" />
-          <InfoLine label="Valor" value={`+${formatBRL(flowData.valor)}`} />
-          <InfoLine label="Agência" value={flowData.recipientAgencia} />
-          <InfoLine label="Conta" value={flowData.recipientAccount} />
-        </div>
+    <div className="flex min-h-full flex-col gap-5 p-4">
+      <CheckCircle size={64} weight="fill" className="mx-auto mt-4 text-brand-element" aria-hidden="true" />
+      <h2 className="text-center text-lg font-bold text-text">Pix de {amount} confirmado</h2>
+      <dl className="space-y-3 rounded-xl bg-bg-input p-4">
+        {fields.map(([label, value]) => value && <div key={label}><dt className="text-xs text-text-secondary">{label}</dt><dd className="break-all text-sm text-text">{value}</dd></div>)}
+      </dl>
+      {refreshError && <p role="alert" className="text-sm text-text-negative">{refreshError}</p>}
+      <div className="mt-auto flex flex-col gap-3 pb-4">
+        <Button onClick={onVoltar} disabled={isLoading}>Ir para extrato</Button>
+        <Button variant="outline" onClick={onFazerNovoPix} disabled={isLoading}>Fazer novo Pix</Button>
       </div>
-
-      {/* Ações */}
-      <div className="flex flex-col gap-3 pb-6">
-        <Button
-          type="button"
-          onClick={onVoltar}
-          className="w-full h-12 rounded-xl text-base font-semibold"
-        >
-          Ir para extrato
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onFazerNovoPix}
-          className="w-full h-12 rounded-xl text-base font-semibold"
-        >
-          Fazer novo pix
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-interface InfoLineProps {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}
-
-function InfoLine({ label, value, highlight = false }: InfoLineProps) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className={`text-xs ${highlight ? 'text-text-tertiary' : 'text-text-secondary'}`}>
-        {label}
-      </span>
-      {value && <span className="text-xs text-text">{value}</span>}
     </div>
   );
 }
