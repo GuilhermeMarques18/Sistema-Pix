@@ -10,15 +10,17 @@ import { StepConfirmarValor } from './StepConfirmarValor';
 import { StepConfirmarDados } from './StepConfirmarDados';
 import { StepDigitarSenha } from './StepDigitarSenha';
 import { StepSucesso } from './StepSucesso';
+import { Button } from '@/app/shared/components/ui/button';
 
 interface SendPixFlowProps {
   onClose: () => void;
   onCompleted: () => Promise<unknown>;
+  scheduled?: boolean;
 }
-export function SendPixFlow({ onClose, onCompleted }: SendPixFlowProps) {
+export function SendPixFlow({ onClose, onCompleted, scheduled = false }: SendPixFlowProps) {
   const navigate = useNavigate();
   const { reload } = useSession();
-  const flow = useSendPix(async () => { await Promise.all([reload(), onCompleted()]); });
+  const flow = useSendPix(async () => { await Promise.all([reload(), onCompleted()]); }, scheduled);
   const dialog = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,18 +51,29 @@ export function SendPixFlow({ onClose, onCompleted }: SendPixFlowProps) {
 
   const progress = Math.max(0, ['inserir-chave', 'confirmar-conta', 'inserir-valor', 'confirmar-valor', 'confirmar-dados', 'digitar-senha'].indexOf(flow.step)) + 1;
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-bg md:bg-black/60" role="dialog" aria-modal="true" aria-label="Enviar Pix" ref={dialog}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-bg md:bg-black/60" role="dialog" aria-modal="true" aria-label={scheduled ? 'Agendar Pix' : 'Enviar Pix'} ref={dialog}>
       <div className="flex h-full w-full max-w-md flex-col overflow-hidden bg-bg md:h-[85vh] md:rounded-2xl md:shadow-2xl">
         {flow.step !== 'sucesso' && <div className="h-1 shrink-0 bg-bg-input" aria-hidden="true"><div className="h-1 bg-brand-element" style={{ width: `${progress / 6 * 100}%` }} /></div>}
         <div className="flex flex-1 flex-col overflow-y-auto">
           {flow.step === 'inserir-chave' && <StepInserirChave onConfirm={flow.submitKey} onClose={onClose} isLoading={flow.isLoading} error={flow.error} />}
           {flow.step === 'confirmar-conta' && <StepConfirmarConta flowData={flow.flowData} onConfirm={flow.confirmAccount} onBack={flow.goBack} />}
-          {flow.step === 'inserir-valor' && <StepInserirValor flowData={flow.flowData} onConfirm={flow.submitValor} onBack={flow.goBack} error={flow.error} />}
+          {flow.step === 'inserir-valor' && <StepInserirValor flowData={flow.flowData} onConfirm={flow.submitValor} onBack={flow.goBack} error={flow.error} scheduled={scheduled} />}
           {flow.step === 'confirmar-valor' && <StepConfirmarValor flowData={flow.flowData} onConfirm={flow.confirmValor} onBack={flow.goBack} />}
           {flow.step === 'confirmar-dados' && <StepConfirmarDados flowData={flow.flowData} onConfirm={flow.confirmDados} onBack={flow.goBack} />}
-          {flow.step === 'digitar-senha' && <StepDigitarSenha onConfirm={flow.submitSenha} onBack={flow.goBack} onClose={onClose} isLoading={flow.isLoading} outcomeUnknown={flow.outcomeUnknown} error={flow.error} />}
+          {flow.step === 'digitar-senha' && <StepDigitarSenha onConfirm={flow.submitSenha} onBack={flow.goBack} onClose={onClose} isLoading={flow.isLoading} outcomeUnknown={flow.outcomeUnknown} error={flow.error} scheduled={scheduled} />}
           {flow.step === 'sucesso' && flow.receipt && <StepSucesso receipt={flow.receipt} isLoading={flow.isLoading} refreshError={flow.refreshError}
             onVoltar={() => { onClose(); navigate('/extrato'); }} onFazerNovoPix={() => { void flow.reset(); }} />}
+          {flow.step === 'sucesso' && scheduled && <div className="flex min-h-full flex-col gap-5 p-4">
+            <h2 className="text-center text-lg font-bold text-text">Pix agendado</h2>
+            <p className="text-sm text-text">{flow.flowData.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para {flow.flowData.recipientName}</p>
+            <p className="text-sm text-text">Data e hora: {new Date(flow.flowData.scheduledAt!).toLocaleString('pt-BR')}</p>
+            <p className="text-sm text-text-secondary">O agendamento foi confirmado. Consulte o extrato para verificar a movimentação.</p>
+            {flow.refreshError && <p role="alert" className="text-sm text-text-negative">{flow.refreshError}</p>}
+            <div className="mt-auto flex flex-col gap-3 pb-4">
+              <Button onClick={onClose} disabled={flow.isLoading}>Fechar</Button>
+              <Button variant="outline" onClick={() => { void flow.reset(); }} disabled={flow.isLoading}>Agendar outro Pix</Button>
+            </div>
+          </div>}
         </div>
       </div>
     </div>

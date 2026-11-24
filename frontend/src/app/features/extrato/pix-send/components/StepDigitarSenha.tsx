@@ -12,8 +12,9 @@ interface Props {
   isLoading: boolean;
   outcomeUnknown: boolean;
   error: string | null;
+  scheduled?: boolean;
 }
-export function StepDigitarSenha({ onConfirm, onBack, onClose, isLoading, outcomeUnknown, error }: Props) {
+export function StepDigitarSenha({ onConfirm, onBack, onClose, isLoading, outcomeUnknown, error, scheduled = false }: Props) {
   const [password, setPassword] = useState('');
   const [validation, setValidation] = useState<string | null>(null);
   function submit(event: FormEvent) {
@@ -36,9 +37,9 @@ export function StepDigitarSenha({ onConfirm, onBack, onClose, isLoading, outcom
         <Input id="pix-confirm-password" type="password" autoComplete="current-password" maxLength={72} value={password}
           disabled={isLoading} onChange={(event) => setPassword(event.target.value)} />
         {(validation || error) && <p role="alert" className="text-sm text-text-negative">{validation || error}</p>}
-        {outcomeUnknown && <p className="text-xs text-text-secondary">Ao tentar novamente, consultaremos ou concluiremos o pedido original. Se fechar, você poderá retomá-lo nesta aba.</p>}
+        {outcomeUnknown && <p className="text-xs text-text-secondary">Ao tentar novamente, consultaremos ou concluiremos o pedido original{scheduled ? ', mesmo que a data já tenha passado' : ''}. Se fechar, você poderá retomá-lo nesta aba.</p>}
         <div className="flex-1" />
-        <Button className="mb-4 w-full" type="submit" disabled={isLoading || !password}>{isLoading ? 'Confirmando...' : outcomeUnknown ? 'Consultar ou concluir envio' : 'Confirmar envio de Pix'}</Button>
+        <Button className="mb-4 w-full" type="submit" disabled={isLoading || !password}>{isLoading ? 'Confirmando...' : outcomeUnknown ? (scheduled ? 'Consultar ou concluir agendamento' : 'Consultar ou concluir envio') : scheduled ? 'Confirmar agendamento' : 'Confirmar envio de Pix'}</Button>
       </form>
     </div>
   );

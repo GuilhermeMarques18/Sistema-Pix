@@ -62,6 +62,10 @@ export function StepConfirmarDados({
             <InfoRow label="Descrição" value={flowData.descricao} />
           </div>
         )}
+        {flowData.scheduledAt && <div className="rounded-xl bg-bg-input p-4">
+          <InfoRow label="Agendado para" value={new Date(flowData.scheduledAt).toLocaleString('pt-BR')} />
+          <p className="mt-2 text-xs text-text-secondary">O valor não será debitado agora.</p>
+        </div>}
       </div>
 
       {/* Aviso + botão */}

@@ -18,11 +18,12 @@ interface QuickActionsProps {
 export function QuickActions({ onRefresh, blocked }: QuickActionsProps) {
   const navigate = useNavigate();
   const [sendPixOpen, setSendPixOpen] = useState(false);
+  const [scheduled, setScheduled] = useState(false);
 
   const actions = [
     { icon: ArrowLineDown, label: 'Receber', onClick: () => navigate('/receive'), disabled: false },
-    { icon: ArrowLineUp, label: 'Enviar', onClick: () => setSendPixOpen(true), disabled: blocked },
-    { icon: CalendarBlank, label: 'Agendar', onClick: () => {}, disabled: true },
+    { icon: ArrowLineUp, label: 'Enviar', onClick: () => { setScheduled(false); setSendPixOpen(true); }, disabled: blocked },
+    { icon: CalendarBlank, label: 'Agendar', onClick: () => { setScheduled(true); setSendPixOpen(true); }, disabled: blocked },
     { icon: ListBullets,   label: 'Extrato', onClick: () => navigate('/extrato') },
   ];
 
@@ -35,7 +36,6 @@ export function QuickActions({ onRefresh, blocked }: QuickActionsProps) {
               key={label}
               onClick={onClick}
               disabled={disabled}
-              title={label === 'Agendar' ? 'Agendamentos ainda indisponíveis' : undefined}
               className="flex flex-col items-center gap-2 rounded-xl bg-bg-input p-3 sm:p-4 text-brand-element
                 hover:bg-bg-input-hover active:scale-95 transition-all duration-150
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-logo disabled:opacity-40 disabled:cursor-not-allowed"
@@ -50,6 +50,7 @@ export function QuickActions({ onRefresh, blocked }: QuickActionsProps) {
 
       {sendPixOpen && (
         <SendPixFlow
+          scheduled={scheduled}
           onCompleted={onRefresh}
           onClose={() => { setSendPixOpen(false); void onRefresh(); }}
         />

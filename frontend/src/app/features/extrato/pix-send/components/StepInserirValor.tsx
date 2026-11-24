@@ -1,6 +1,7 @@
 'use client';
 
 import { useForm } from 'react-hook-form';
+import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/app/shared/components/ui/button';
 import { Input } from '@/app/shared/components/ui/input';
@@ -15,9 +16,10 @@ import { parseMoneyToCents } from '../lib/money';
 
 interface StepInserirValorProps {
   flowData: SendPixFlowData;
-  onConfirm: (valor: number, descricao: string) => void;
+  onConfirm: (valor: number, descricao: string, localDate?: string) => void;
   onBack: () => void;
   error: string | null;
+  scheduled?: boolean;
 }
 
 function formatBRL(value: number): string {
@@ -29,7 +31,9 @@ export function StepInserirValor({
   onConfirm,
   onBack,
   error,
+  scheduled = false,
 }: StepInserirValorProps) {
+  const [localDate, setLocalDate] = useState(() => flowData.scheduledAt ? new Date(new Date(flowData.scheduledAt).getTime() - new Date(flowData.scheduledAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '');
   const {
     register,
     handleSubmit,
@@ -44,7 +48,7 @@ export function StepInserirValor({
 
   function onSubmit(values: InserirValorFormValues) {
     const cents = parseMoneyToCents(values.valor);
-    if (cents !== null) onConfirm(cents / 100, values.descricao ?? '');
+    if (cents !== null) onConfirm(cents / 100, values.descricao ?? '', scheduled ? localDate : undefined);
   }
 
   return (
@@ -73,6 +77,12 @@ export function StepInserirValor({
 
         <p className="mb-3 text-xs text-text-secondary">Saldo retido: {formatBRL(flowData.blockedBalance)}. {flowData.pixLimit > 0 ? `Limite por Pix: ${formatBRL(flowData.pixLimit)}.` : 'Sem limite de valor por Pix configurado.'}</p>
         {error && <p role="alert" className="mb-3 text-sm text-text-negative">{error}</p>}
+
+        {scheduled && <div className="mb-3">
+          <Label htmlFor="scheduled-at" className="mb-1.5 block">Data e hora do agendamento</Label>
+          <Input id="scheduled-at" type="datetime-local" required value={localDate} onChange={(event) => setLocalDate(event.target.value)} />
+          <p className="mt-1 text-xs text-text-secondary">Horário local. O valor não será debitado agora.</p>
+        </div>}
 
         {/* Campo valor */}
         <div className="mb-3">

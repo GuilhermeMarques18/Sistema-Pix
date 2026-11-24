@@ -22,15 +22,15 @@ function initialData(account: AccountSummary | null): SendPixFlowData {
   };
 }
 
-export function useSendPix(onSuccess?: () => Promise<unknown>) {
+export function useSendPix(onSuccess?: () => Promise<unknown>, scheduled = false) {
   const { account } = useSession();
-  const [pending] = useState(() => account ? readPendingPix(account.id) : null);
+  const [pending] = useState(() => account ? readPendingPix(account.id, scheduled) : null);
   const [step, setStep] = useState<SendPixStep>(pending ? 'digitar-senha' : 'inserir-chave');
   const [flowData, setFlowData] = useState<SendPixFlowData>(pending?.flowData ?? initialData(account));
   const [receipt, setReceipt] = useState<PixTransactionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [outcomeUnknown, setOutcomeUnknown] = useState(!!pending);
-  const [error, setError] = useState<string | null>(pending ? 'Há um envio pendente nesta aba. Confirme sua senha para consultar ou concluir o mesmo pedido.' : null);
+  const [error, setError] = useState<string | null>(pending ? (scheduled ? 'Há um agendamento com resultado não confirmado nesta aba. Confirme sua senha para consultar ou concluir o mesmo pedido.' : 'Há um envio pendente nesta aba. Confirme sua senha para consultar ou concluir o mesmo pedido.') : null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const requestId = useRef(pending?.requestId ?? crypto.randomUUID());
   const busy = useRef(false);
@@ -61,17 +61,19 @@ export function useSendPix(onSuccess?: () => Promise<unknown>) {
     }
   };
 
-  const submitValor = (value: number, description: string) => {
+  const submitValor = (value: number, description: string, localDate?: string) => {
     if (busy.current || outcomeUnknown || receipt) return;
     const cents = moneyToCents(value);
     if (!Number.isFinite(value) || !Number.isSafeInteger(cents) || cents <= 0 || Math.abs(value * 100 - cents) > 0.001) {
       setError('Informe um valor positivo com até duas casas decimais.'); return;
     }
-    if (cents > moneyToCents(flowData.availableBalance)) { setError('Saldo disponível insuficiente. Valores retidos não podem ser enviados.'); return; }
+    if (!scheduled && cents > moneyToCents(flowData.availableBalance)) { setError('Saldo disponível insuficiente. Valores retidos não podem ser enviados.'); return; }
     if (flowData.pixLimit > 0 && cents > moneyToCents(flowData.pixLimit)) { setError('O valor excede seu limite por Pix.'); return; }
     if (description.trim().length > 100) { setError('Use no máximo 100 caracteres na descrição.'); return; }
+    const date = localDate ? new Date(localDate) : null;
+    if (scheduled && (!date || !Number.isFinite(date.getTime()) || date.getTime() <= Date.now())) { setError('Informe uma data e hora futuras para o agendamento.'); return; }
     requestId.current = crypto.randomUUID();
-    setFlowData((current) => ({ ...current, valor: value, descricao: description.trim() }));
+    setFlowData((current) => ({ ...current, valor: value, descricao: description.trim(), scheduledAt: date?.toISOString() }));
     setError(null);
     setStep('confirmar-valor');
   };
@@ -79,8 +81,11 @@ export function useSendPix(onSuccess?: () => Promise<unknown>) {
   const submitSenha = async (password: string) => {
     if (busy.current || !account || !flowData.keyType || !flowData.contaDestinoId) return;
     if (!password || password.length < 6) { setError('Informe sua senha de acesso.'); return; }
+    if (scheduled && !outcomeUnknown && (!flowData.scheduledAt || Date.parse(flowData.scheduledAt) <= Date.now())) {
+      setError('A data do agendamento deve ser futura. Volte e escolha outra data.'); return;
+    }
     // Guardar somente dados necessários ao replay, nunca a senha.
-    if (!savePendingPix({ version: 1, sourceAccountId: account.id, requestId: requestId.current, flowData })) {
+    if (!savePendingPix({ version: 1, sourceAccountId: account.id, requestId: requestId.current, flowData }, scheduled)) {
       setError('Não foi possível preparar a recuperação do envio. Habilite o armazenamento desta aba e tente novamente.');
       return;
     }
@@ -88,26 +93,29 @@ export function useSendPix(onSuccess?: () => Promise<unknown>) {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await pixSendService.sendPix({
+      const payload = {
         chavePix: flowData.chavePix, tipoChave: flowData.keyType, contaDestinoId: flowData.contaDestinoId,
         valor: centsToDecimal(moneyToCents(flowData.valor)), descricao: flowData.descricao || null,
         password, idempotencyKey: requestId.current,
-      });
-      clearPendingPix(account.id);
+      };
+      const result = scheduled ? await pixSendService.schedulePix({ ...payload, scheduledAt: flowData.scheduledAt! }) : await pixSendService.sendPix(payload);
+      clearPendingPix(account.id, scheduled);
       setOutcomeUnknown(false);
-      setReceipt(result);
+      if (!scheduled) setReceipt(result as PixTransactionResponse);
       setStep('sucesso');
       // Uma falha na atualização de tela não deve transformar Pix confirmado em falha de envio.
       if (onSuccess) {
-        try { await onSuccess(); } catch { setRefreshError('Pix confirmado. Não foi possível atualizar a conta; tente novamente antes de um novo envio.'); }
+        try { await onSuccess(); } catch { setRefreshError('Operação confirmada. Não foi possível atualizar a conta; tente novamente.'); }
       }
     } catch (err) {
       const uncertain = !axios.isAxiosError(err) || !err.response || err.response.status >= 500;
-      setOutcomeUnknown(uncertain);
+      setOutcomeUnknown(uncertain || (scheduled && outcomeUnknown));
       if (uncertain) {
-        setError('O resultado do envio ainda não foi confirmado. Digite a senha e tente novamente para consultar ou concluir o mesmo pedido, sem duplicar o débito.');
+        setError(scheduled ? 'O resultado do agendamento não foi confirmado. Digite a senha e tente novamente para consultar ou concluir o mesmo pedido.' : 'O resultado do envio ainda não foi confirmado. Digite a senha e tente novamente para consultar ou concluir o mesmo pedido, sem duplicar o débito.');
+      } else if (scheduled && outcomeUnknown) {
+        setError(`${getApiErrorMessage(err, 'Não foi possível recuperar o agendamento.')} O resultado do pedido original continua não confirmado; tente novamente.`);
       } else {
-        clearPendingPix(account.id);
+        clearPendingPix(account.id, scheduled);
         setError(getApiErrorMessage(err, 'Não foi possível realizar a transferência.'));
       }
     } finally {
