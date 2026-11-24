@@ -1,4 +1,9 @@
-const TOKEN_KEY = 'sistem_pix:token';
+export const TOKEN_KEY = 'sistem_pix:token';
+export const SESSION_CHANGED_EVENT = 'auth:session-changed';
+
+function notifySessionChanged() {
+  window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
+}
 
 export const tokenService = {
   get(): string | null {
@@ -8,10 +13,12 @@ export const tokenService = {
 
   set(token: string): void {
     localStorage.setItem(TOKEN_KEY, token);
+    notifySessionChanged();
   },
 
   remove(): void {
     localStorage.removeItem(TOKEN_KEY);
+    notifySessionChanged();
   },
 
   exists(): boolean {

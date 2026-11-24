@@ -55,7 +55,6 @@ public class UserModel implements UserDetails {
     private String email;
 
     @NotBlank
-    @Size(min = 8, message = "Senha deve ter pelo menos 8 digitos")
     @Column(name = "senha", nullable = false, length = 255)
     private String password;
 
@@ -114,6 +113,6 @@ public class UserModel implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
+        return ativo;
     }
 }

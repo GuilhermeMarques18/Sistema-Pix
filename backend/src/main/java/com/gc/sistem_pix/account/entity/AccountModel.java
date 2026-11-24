@@ -115,7 +115,7 @@ public class AccountModel {
 
         if (getAvailableBalance().compareTo(value) < 0) {
             throw new InsufficientBalanceException(
-                    "Saldo disponível insuficiente. Existem valores retidos sob disputa.");
+                    blockedBalance.signum() > 0 ? "Saldo disponível insuficiente. Existem valores retidos sob disputa." : "Saldo disponível insuficiente.");
         }
 
         this.balance = this.balance.subtract(value);
@@ -126,7 +126,6 @@ public class AccountModel {
         if (getAvailableBalance().compareTo(value) < 0) {
             throw new InsufficientBalanceException("Saldo insuficiente na conta para abertura de disputa");
         }
-        this.blockedBalance = BigDecimal.ZERO;
         this.blockedBalance = this.blockedBalance.add(value);
     }
 

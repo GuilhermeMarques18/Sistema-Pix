@@ -38,6 +38,12 @@ public class PixTransactionController {
 
     private final PixTransactionService pixTransactionService;
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Consulta comprovante de uma transação própria ou administrativa", tags = {"Transações Pix"})
+    public ResponseEntity<PixTransactionResponse> findById(@PathVariable UUID id, @AuthenticationPrincipal UserModel user) {
+        return ResponseEntity.ok(pixTransactionService.findById(id, user));
+    }
+
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
     @Operation(summary = "Lista todas as transações Pix realizadas (Exclusivo ADMIN/OWNER)", tags = { "Administração do Sistema" })
@@ -118,11 +124,12 @@ public ResponseEntity<PixExtractResponse> getTransactionHistory(
     }
 
     @PostMapping
-    @Operation(summary = "Realiza uma transferência Pix", description = "Debita a conta do usuário autenticado e credita a conta associada à chave Pix informada.", tags = {
+    @Operation(summary = "Realiza uma transferência Pix", description = "Confirma a senha e o destinatário. Repetições com o mesmo idempotencyKey e conteúdo retornam a transação original sem novo débito.", tags = {
             "Transações Pix" })
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Transação criada"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "409", description = "Identificador de envio reutilizado com outros dados"),
             @ApiResponse(responseCode = "422", description = "Transação Pix inválida")
     })
     public ResponseEntity<PixTransactionResponse> create(

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { extratoService } from '../services/extrato.service';
 import type { PixTransactionResponse, AccountSummary, PeriodFilter } from '../types/extrato.types';
+import { getApiErrorMessage } from '@/app/shared/lib/apiError';
 
 interface UseExtratoReturn {
   transactions: PixTransactionResponse[];
@@ -12,6 +13,7 @@ interface UseExtratoReturn {
   error: string | null;
   period: PeriodFilter;
   setPeriod: (period: PeriodFilter) => void;
+  reload: () => Promise<void>;
 }
 
 function filterByPeriod(
@@ -35,7 +37,6 @@ export function useExtrato(): UseExtratoReturn {
   const [period, setPeriod] = useState<PeriodFilter>('30');
 
   const fetchData = useCallback(async () => {
-    setIsLoading(true);
     setError(null);
 
     try {
@@ -51,8 +52,8 @@ export function useExtrato(): UseExtratoReturn {
 
       setTransactions(sorted);
       setAccount(accountData);
-    } catch {
-      setError('Não foi possível carregar o extrato. Tente novamente.');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Não foi possível carregar o extrato. Tente novamente.'));
     } finally {
       setIsLoading(false);
     }
@@ -72,5 +73,6 @@ export function useExtrato(): UseExtratoReturn {
     error,
     period,
     setPeriod,
+    reload: fetchData,
   };
 }

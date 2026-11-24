@@ -1,6 +1,7 @@
 'use client';
 
-import { type Transaction } from '../components/TransactionItem';
+import { useDashboard } from '../hooks/useDashboard';
+import { Button } from '@/app/shared/components/ui/button';
 import {
   DashboardHeader,
   BalanceCard,
@@ -8,74 +9,37 @@ import {
   TransactionList,
 } from '../components';
 
-/** Mock data — substituir por chamada à API quando o backend estiver pronto */
-const MOCK_USER = 'Geovana Veras';
-
-const MOCK_BALANCE = {
-  balance: 1400.0,
-  used: 3600.0,
-  limit: 5000.0,
-};
-
-const MOCK_TRANSACTIONS: Transaction[] = [
-  {
-    id: '1',
-    name: 'Vitor Carvalho Santos',
-    document: '999.999.999-08',
-    amount: 700.0,
-    type: 'credit',
-    date: 'Hoje',
-    time: '17:03',
-  },
-  {
-    id: '2',
-    name: 'Renan Almeida Barros',
-    document: '888.999.999-08',
-    amount: 200.0,
-    type: 'debit',
-    date: 'Hoje',
-    time: '17:03',
-  },
-  {
-    id: '3',
-    name: 'Renan Almeida Barros',
-    document: '888.999.999-08',
-    amount: 200.0,
-    type: 'credit',
-    date: 'Hoje',
-    time: '17:03',
-  },
-  {
-    id: '4',
-    name: 'Renan Almeida Barros',
-    document: '888.999.999-08',
-    amount: 200.0,
-    type: 'debit',
-    date: 'Hoje',
-    time: '17:03',
-  },
-  {
-    id: '5',
-    name: 'Vitor Carvalho Santos',
-    document: '888.999.999-08',
-    amount: 200.0,
-    type: 'debit',
-    date: 'Hoje',
-    time: '17:03',
-  },
-];
-
 export function DashboardPage() {
+  const { account, transactions, transactionsUsed, isLoading, error, reload } = useDashboard();
+
+  if (isLoading) {
+    return <p className="px-4 pt-6 text-sm text-text-secondary">Carregando sua conta...</p>;
+  }
+
+  if (!account) {
+    return (
+      <div className="px-4 pt-6">
+        <p role="alert" className="text-sm text-text-negative">{error || 'Conta não encontrada.'}</p>
+        <Button className="mt-3" onClick={() => void reload()}>Tentar novamente</Button>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Header */}
-      <DashboardHeader userName={MOCK_USER} />
+      <DashboardHeader userName={account.ownerName} />
+
+      {error && <p role="alert" className="p-4 text-sm text-text-negative">{error} <button className="underline" onClick={() => void reload()}>Tentar novamente</button></p>}
+      {account.status === 'BLOQUEADA' && <p className="p-4 text-sm text-text-negative">Sua conta está bloqueada para enviar Pix.</p>}
+      {account.blockedBalance > 0 && <p className="px-4 text-sm text-text-secondary">Saldo retido: {account.blockedBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Disponível: {account.availableBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.</p>}
 
       {/* Saldo */}
       <BalanceCard
-        balance={MOCK_BALANCE.balance}
-        used={MOCK_BALANCE.used}
-        limit={MOCK_BALANCE.limit}
+        balance={account.balance}
+        transactionsUsed={transactionsUsed}
+        transactionLimit={account.transactionLimit}
+        pixLimit={account.pixLimit}
       />
 
       {/* Divisor sutil */}
@@ -83,15 +47,15 @@ export function DashboardPage() {
 
       {/* Ações rápidas */}
       <QuickActions
-        availableBalance={MOCK_BALANCE.balance}
-        pixLimit={MOCK_BALANCE.limit}
+        blocked={account.status === 'BLOQUEADA'}
+        onRefresh={reload}
       />
 
       {/* Divisor sutil */}
       <div className="mx-4 my-3 h-px bg-bg-input" />
 
       {/* Transações */}
-      <TransactionList transactions={MOCK_TRANSACTIONS} />
+      <TransactionList transactions={transactions} />
     </>
   );
 }

@@ -30,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfigurations {
 
     private final SecurityFilter securityFilter;
+    private final SecurityErrorHandler securityErrorHandler;
 
     @Value("${app.cors.allowed-origins:http://localhost:3001,http://127.0.0.1:3001}")
     private String allowedOrigins;
@@ -40,6 +41,9 @@ public class SecurityConfigurations {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(securityErrorHandler)
+                        .accessDeniedHandler(securityErrorHandler))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()

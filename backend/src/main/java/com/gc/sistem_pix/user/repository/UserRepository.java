@@ -9,14 +9,14 @@ import com.gc.sistem_pix.user.entity.UserModel;
 
 public interface UserRepository extends JpaRepository<UserModel, UUID> {
 
-    boolean existsByEmailAndIdNot(String email, UUID id);
+    boolean existsByEmailIgnoreCaseAndIdNot(String email, UUID id);
 
     boolean existsByTelefoneAndIdNot(String telefone, UUID id);
 
-    boolean existsByEmail(String email);
+    boolean existsByEmailIgnoreCase(String email);
 
     boolean existsByTelefone(String telefone);
 
-    Optional<UserModel> findByEmail(String email);
+    Optional<UserModel> findByEmailIgnoreCase(String email);
 
 }

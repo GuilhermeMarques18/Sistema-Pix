@@ -5,8 +5,9 @@ import { Eye, EyeSlash } from '@phosphor-icons/react';
 
 interface BalanceCardProps {
   balance: number;
-  used: number;
-  limit: number;
+  transactionsUsed: number;
+  transactionLimit: number;
+  pixLimit: number;
 }
 
 function formatBRL(value: number): string {
@@ -16,9 +17,9 @@ function formatBRL(value: number): string {
   });
 }
 
-export function BalanceCard({ balance, used, limit }: BalanceCardProps) {
+export function BalanceCard({ balance, transactionsUsed, transactionLimit, pixLimit }: BalanceCardProps) {
   const [visible, setVisible] = useState(true);
-  const usedPercent = Math.min((used / limit) * 100, 100);
+  const usedPercent = transactionLimit > 0 ? Math.min((transactionsUsed / transactionLimit) * 100, 100) : 0;
 
   return (
     <div className="px-4 pt-4 pb-2">
@@ -53,12 +54,15 @@ export function BalanceCard({ balance, used, limit }: BalanceCardProps) {
       {/* Used / Limit */}
       <div className="flex justify-between">
         <span className="text-xs text-text-secondary">
-          Usado {formatBRL(used)}
+          Enviadas hoje: {transactionsUsed}
         </span>
         <span className="text-xs text-text-secondary">
-          Limite: {formatBRL(limit)}
+          Limite diário: {transactionLimit > 0 ? transactionLimit : 'Sem limite'}
         </span>
       </div>
+      <p className="mt-2 text-xs text-text-secondary">
+        Limite por Pix: {pixLimit > 0 ? formatBRL(pixLimit) : 'Sem limite'}
+      </p>
     </div>
   );
 }

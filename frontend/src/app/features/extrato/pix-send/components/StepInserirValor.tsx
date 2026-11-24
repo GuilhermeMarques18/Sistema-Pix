@@ -11,11 +11,13 @@ import {
   type InserirValorFormValues,
 } from '../schemas/pix-send.schema';
 import type { SendPixFlowData } from '../types/pix-send.types';
+import { parseMoneyToCents } from '../lib/money';
 
 interface StepInserirValorProps {
   flowData: SendPixFlowData;
   onConfirm: (valor: number, descricao: string) => void;
   onBack: () => void;
+  error: string | null;
 }
 
 function formatBRL(value: number): string {
@@ -26,6 +28,7 @@ export function StepInserirValor({
   flowData,
   onConfirm,
   onBack,
+  error,
 }: StepInserirValorProps) {
   const {
     register,
@@ -34,14 +37,14 @@ export function StepInserirValor({
   } = useForm<InserirValorFormValues>({
     resolver: zodResolver(inserirValorSchema),
     defaultValues: {
-      valor: flowData.valor > 0 ? String(flowData.valor) : '',
+      valor: flowData.valor > 0 ? flowData.valor.toFixed(2).replace('.', ',') : '',
       descricao: flowData.descricao,
     },
   });
 
   function onSubmit(values: InserirValorFormValues) {
-    const valorNumerico = parseFloat(values.valor.replace(',', '.'));
-    onConfirm(valorNumerico, values.descricao ?? '');
+    const cents = parseMoneyToCents(values.valor);
+    if (cents !== null) onConfirm(cents / 100, values.descricao ?? '');
   }
 
   return (
@@ -68,6 +71,9 @@ export function StepInserirValor({
           </span>
         </div>
 
+        <p className="mb-3 text-xs text-text-secondary">Saldo retido: {formatBRL(flowData.blockedBalance)}. {flowData.pixLimit > 0 ? `Limite por Pix: ${formatBRL(flowData.pixLimit)}.` : 'Sem limite de valor por Pix configurado.'}</p>
+        {error && <p role="alert" className="mb-3 text-sm text-text-negative">{error}</p>}
+
         {/* Campo valor */}
         <div className="mb-3">
           <Label htmlFor="valor" className="mb-1.5 block">
@@ -92,9 +98,11 @@ export function StepInserirValor({
           </Label>
           <Input
             id="descricao"
+            maxLength={100}
             placeholder="Ex: Pagamento de serviço"
             {...register('descricao')}
           />
+          {errors.descricao && <p className="mt-1 text-xs text-text-negative">{errors.descricao.message}</p>}
         </div>
 
         <div className="flex-1" />

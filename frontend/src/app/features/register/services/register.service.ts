@@ -1,5 +1,6 @@
 import { api } from '@/app/core/http';
 import type { RegisterFormData } from '../schemas/register.schema';
+import type { UserProfile } from '@/app/shared/types/api.types';
 
 interface RegisterPessoaFisicaPayload {
   name: string;
@@ -17,21 +18,15 @@ interface RegisterPessoaJuridicaPayload {
   cnpj: string;
 }
 
-export interface RegisterResponse {
-  id: string;
-  name: string;
-  email: string;
-  telefone: string;
-  tipoPessoa: string;
-  documento: string;
-  createdUser: string;
-}
+export type RegisterResponse = UserProfile;
 
 export const registerService = {
   async register(data: RegisterFormData): Promise<RegisterResponse> {
-    const { name, email, password, tipoPessoa, documento } = data;
-    // Remove tudo que não seja dígito ou +, para satisfazer o padrão do backend: \+?[0-9]{10,13}
-    const telefone = data.telefone.replace(/[^\d+]/g, '');
+    const { password, tipoPessoa } = data;
+    const name = data.name.trim();
+    const email = data.email.trim().toLowerCase();
+    const documento = data.documento.replace(/[.\/\s-]/g, '');
+    const telefone = data.telefone.trim().replace(/[\s()-]/g, '');
 
     if (tipoPessoa === 'FISICA') {
       const payload: RegisterPessoaFisicaPayload = {

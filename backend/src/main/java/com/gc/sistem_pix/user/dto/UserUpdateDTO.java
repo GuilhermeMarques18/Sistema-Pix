@@ -12,11 +12,17 @@ public record UserUpdateDTO(
                 @Size(min = 3, max = 150) String name,
 
                 @Schema(description = "Novo e-mail do usuário", example = "maria.nova@email.com")
-                @Email String email,
+                @Email @Size(max = 255) String email,
 
                 @Schema(description = "Novo telefone do usuário", example = "+5585999999999")
                 @Pattern(regexp = "\\+?[0-9]{10,13}", message = "Telefone inválido") String telefone,
 
                 @Schema(description = "Canal preferencial para notificações", example = "EMAIL")
                 NotificationType notificationType) {
+
+        public UserUpdateDTO {
+                name = UserInputNormalizer.name(name);
+                email = UserInputNormalizer.email(email);
+                telefone = UserInputNormalizer.phone(telefone);
+        }
 }

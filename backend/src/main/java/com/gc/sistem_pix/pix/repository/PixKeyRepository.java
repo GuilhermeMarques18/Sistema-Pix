@@ -17,4 +17,8 @@ public interface PixKeyRepository extends JpaRepository<PixKey, UUID> {
     Optional<PixKey> findByKey(String key);
 
     List<PixKey> findAllByAccount_IdOrderByCreatedAtDesc(UUID accountId);
+
+    Optional<PixKey> findByIdAndAccount_User_Id(UUID id, UUID userId);
+
+    boolean existsByKeyAndIdNot(String key, UUID id);
 }

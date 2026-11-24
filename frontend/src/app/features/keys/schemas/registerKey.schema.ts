@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { PixKeyType } from '../types';
+import { normalizePhoneKey } from '../lib/formatPixKey';
 
 const onlyDigits = (value: string) => value.replace(/\D/g, '');
 
@@ -19,7 +20,7 @@ const valueSchemaByType: Record<PixKeyType, z.ZodTypeAny> = {
     .regex(emailRegex, 'Informe um e-mail válido.'),
   phone: z
     .string({ required_error: 'Telefone obrigatório.' })
-    .regex(phoneRegex, 'Informe só números com DDD (ex: 85999999999).'),
+    .refine((value) => phoneRegex.test(normalizePhoneKey(value)), 'Informe um telefone com DDD válido.'),
   // Chave aleatória é gerada pelo backend: não há valor para validar
   random: z.string().optional(),
 };

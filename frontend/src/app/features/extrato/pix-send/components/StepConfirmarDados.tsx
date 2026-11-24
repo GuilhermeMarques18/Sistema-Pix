@@ -23,7 +23,7 @@ function InfoRow({ label, value }: InfoRowProps) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-text-secondary">{label}</span>
-      <span className="text-sm text-text">{value}</span>
+      <span className="break-all text-sm text-text">{value}</span>
     </div>
   );
 }
@@ -53,9 +53,8 @@ export function StepConfirmarDados({
           <p className="text-base font-semibold text-text">{flowData.recipientName}</p>
           <div className="h-px bg-border" />
           <InfoRow label="Chave PIX" value={flowData.chavePix} />
-          <InfoRow label="CPF" value={flowData.recipientCpf} />
-          <InfoRow label="Agência" value={flowData.recipientAgencia} />
-          <InfoRow label="Conta" value={flowData.recipientAccount} />
+          {flowData.recipientDocument && <InfoRow label="CPF/CNPJ" value={flowData.recipientDocument} />}
+          <InfoRow label="ID da conta de destino" value={flowData.contaDestinoId} />
         </div>
 
         {flowData.descricao && (

@@ -66,6 +66,13 @@ public class UserController {
         return ResponseEntity.created(URI.create("/api/users/" + response.id())).body(response);
     }
 
+    @GetMapping("/me")
+    @Operation(summary = "Busca os dados do usuário autenticado", tags = {"Usuários"})
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<UserResponseDTO> findMe(@AuthenticationPrincipal UserModel authenticatedUser) {
+        return ResponseEntity.ok(userService.searchID(authenticatedUser.getId()));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
     @Operation(summary = "Busca um usuário por ID (Exclusivo ADMIN/OWNER)", tags = {"Administração do Sistema"})

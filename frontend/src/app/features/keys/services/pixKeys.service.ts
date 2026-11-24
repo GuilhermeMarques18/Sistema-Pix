@@ -1,13 +1,14 @@
 import { api } from '@/app/core/http';
 import type { PixKey, PixKeyStatus, PixKeyType } from '../types';
+import { normalizePhoneKey } from '../lib/formatPixKey';
+import type { PixKeyResponse as ApiPixKeyResponse, PixKeyType as ApiPixKeyType } from '@/app/shared/types/api.types';
 
 /**
- * Mude para true quando o backend tiver:
+ * RF23 — mude para true quando o backend tiver:
  *  - PATCH /api/pix/keys/{id}/status  body { status: 'ATIVA' | 'SUSPENSA' }
- *  - PUT   /api/pix/keys/{id}         body { tipo, chave }
  *  - campo "status" no PixKeyResponse
  */
-const KEY_MANAGEMENT_AVAILABLE = false;
+const KEY_STATUS_MANAGEMENT_AVAILABLE = false;
 
 export class KeyEndpointUnavailableError extends Error {
   constructor(action: string) {
@@ -16,15 +17,9 @@ export class KeyEndpointUnavailableError extends Error {
   }
 }
 
-type ApiPixKeyType = 'CPF' | 'CNPJ' | 'EMAIL' | 'CELULAR' | 'ALEATORIO';
 type ApiPixKeyStatus = 'ATIVA' | 'SUSPENSA';
 
-interface PixKeyResponse {
-  id: string;
-  contaBancariaId: string;
-  tipo: ApiPixKeyType;
-  chave: string;
-  criadoEm: string;
+interface PixKeyResponse extends ApiPixKeyResponse {
   status?: ApiPixKeyStatus; // ainda não existe no backend
 }
 
@@ -61,7 +56,7 @@ function toPixKey(dto: PixKeyResponse): PixKey {
 export const pixKeysService = {
   /** GET /api/pix/keys/me */
   async listMine(): Promise<PixKey[]> {
-    const { data } = await api.get<PixKeyResponse[]>('/api/pix/keys/me/');
+    const { data } = await api.get<PixKeyResponse[]>('/api/pix/keys/me');
     return data.map(toPixKey);
   },
 
@@ -69,33 +64,33 @@ export const pixKeysService = {
   async create(type: PixKeyType, value?: string): Promise<PixKey> {
     const { data } = await api.post<PixKeyResponse>('/api/pix/keys', {
       tipo: toApiType[type],
-      chave: type === 'random' ? undefined : value?.trim(),
+      chave: type === 'random' || type === 'cpf' || type === 'cnpj' ? undefined : type === 'phone' && value ? normalizePhoneKey(value) : value?.trim().toLowerCase(),
     });
     return toPixKey(data);
   },
 
   /** PATCH /api/pix/keys/{id}/status — suspender / desbloquear (RF23) */
   async setStatus(id: string, status: PixKeyStatus): Promise<PixKey> {
-    if (!KEY_MANAGEMENT_AVAILABLE) {
+    if (!KEY_STATUS_MANAGEMENT_AVAILABLE) {
       throw new KeyEndpointUnavailableError(
         status === 'active' ? 'Desbloquear chave' : 'Suspender chave',
       );
     }
+
     const { data } = await api.patch<PixKeyResponse>(`/api/pix/keys/${id}/status`, {
       status: toApiStatus[status],
     });
+
     return toPixKey(data);
   },
 
-  /** PUT /api/pix/keys/{id} — alterar chave associada (RF24) */
-  async update(id: string, type: PixKeyType, value: string): Promise<PixKey> {
-    if (!KEY_MANAGEMENT_AVAILABLE) {
-      throw new KeyEndpointUnavailableError('Alterar chave');
-    }
-    const { data } = await api.put<PixKeyResponse>(`/api/pix/keys/${id}`, {
-      tipo: toApiType[type],
-      chave: value.trim(),
-    });
+  /** PUT /api/pix/keys/{id} — alterar valor ou solicitar regeneração da aleatória (RF24) */
+  async update(id: string, type: PixKeyType, value?: string): Promise<PixKey> {
+    const payload = type === 'random'
+      ? { tipo: toApiType[type] }
+      : { tipo: toApiType[type], chave: type === 'phone' && value ? normalizePhoneKey(value) : value?.trim() };
+    const { data } = await api.put<PixKeyResponse>(`/api/pix/keys/${id}`, payload);
+
     return toPixKey(data);
   },
 };

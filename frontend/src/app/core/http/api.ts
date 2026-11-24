@@ -2,7 +2,8 @@ import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'ax
 import { tokenService } from '@/app/core/auth/token.service';
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL == 'http://localhost:3000',
+  baseURL: process.env.NEXT_PUBLIC_API_URL?.trim() || '/',
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -24,35 +25,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
-    const status = error.response?.status;
+    const isLogin = /\/api\/auth\/login\/?(?:\?|$)/.test(error.config?.url ?? '');
+    const currentToken = tokenService.get();
+    const requestToken = error.config?.headers?.Authorization;
 
-    switch (status) {
-      case 400:
-        console.error('[HTTP 400] Dados inválidos ou requisição incorreta.');
-        break;
-      case 401:
-        console.error('[HTTP 401] Não autenticado ou token inválido.');
-        tokenService.remove();
-        // Redirecionar para login pode ser feito via evento customizado
-        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
-        break;
-      case 403:
-        console.error('[HTTP 403] Sem permissão para acessar este recurso.');
-        break;
-      case 404:
-        console.error('[HTTP 404] Recurso não encontrado.');
-        break;
-      case 409:
-        console.error('[HTTP 409] Conflito ao processar a requisição.');
-        break;
-      case 422:
-        console.error('[HTTP 422] Erro de validação dos dados enviados.');
-        break;
-      case 500:
-        console.error('[HTTP 500] Erro interno do servidor.');
-        break;
-      default:
-        console.error(`[HTTP ${status ?? 'unknown'}] Erro inesperado.`);
+    // Uma resposta de outra sessão ou uma senha de login errada não encerra a sessão atual.
+    if (error.response?.status === 401 && !isLogin && currentToken && requestToken === `Bearer ${currentToken}`) {
+      tokenService.remove();
     }
 
     return Promise.reject(error);

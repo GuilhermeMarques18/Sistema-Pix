@@ -45,7 +45,7 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
       {/* Name + document */}
       <div className="flex-1 min-w-0">
         <p className="text-base font-medium text-text truncate">{transaction.name}</p>
-        <p className="text-sm text-text-secondary">{transaction.document}</p>
+        {transaction.document && <p className="text-sm text-text-secondary">{transaction.document}</p>}
       </div>
 
       {/* Amount + date */}
@@ -59,7 +59,7 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
           {formatBRL(transaction.amount)}
         </p>
         <p className="text-xs text-text-secondary">
-          Hoje, {transaction.time}
+          {transaction.date}, {transaction.time}
         </p>
       </div>
     </div>

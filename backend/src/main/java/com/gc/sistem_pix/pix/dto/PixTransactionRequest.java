@@ -1,29 +1,22 @@
 package com.gc.sistem_pix.pix.dto;
-
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
-
 import java.math.BigDecimal;
-
+import java.util.UUID;
+import com.gc.sistem_pix.pix.enums.PixKeyType;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.*;
 public record PixTransactionRequest(
-        @Schema(
-                description = "Chave Pix da conta que receberá o valor",
-                example = "destino@email.com"
-        )
-        @NotBlank(message = "Chave Pix de destino é obrigatória")
-        @Size(max = 77, message = "Chave Pix deve possuir no máximo 77 caracteres")
-        String chavePix,
-
-        @Schema(description = "Valor da transação", example = "150.75")
-        @NotNull @Positive BigDecimal valor,
-
-        @Schema(description = "Descrição opcional da transação", example = "Pagamento de serviço")
-        @Size(max = 100) String descricao
-
-        // @NotNull
-        // Boolean transacaoAgendada
-) {
+        @NotBlank @Size(max = 77) String chavePix,
+        @NotNull @Positive @Digits(integer = 17, fraction = 2) BigDecimal valor,
+        @Size(max = 100) String descricao,
+        @NotNull PixKeyType tipoChave,
+        @NotNull UUID contaDestinoId,
+        @NotBlank @Size(max = 72) @Schema(accessMode = Schema.AccessMode.WRITE_ONLY, format = "password") String password,
+        @NotNull UUID idempotencyKey) {
+    public PixTransactionRequest {
+        descricao = descricao == null || descricao.isBlank() ? null : descricao.trim();
+    }
+    @Override
+    public String toString() {
+        return "PixTransactionRequest[idempotencyKey=" + idempotencyKey + ", password=[REDACTED]]";
+    }
 }
