@@ -20,6 +20,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import com.gc.sistem_pix.pix.dto.PixRecipientResponse;
+import com.gc.sistem_pix.pix.event.PixTransferCompletedEvent;
 
 import com.gc.sistem_pix.account.entity.AccountModel;
 import com.gc.sistem_pix.account.enums.AccountStatus;
@@ -47,7 +51,13 @@ class PixTransactionServiceTest {
     private PixKeyService pixKeyService;
 
     @Mock
-    private PixNotificationService pixNotificationService;
+    private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private PixRecipientService recipientService;
+
+    @Mock
+    private ApplicationEventPublisher events;
 
     @InjectMocks
     private PixTransactionService pixTransactionService;
@@ -61,12 +71,16 @@ class PixTransactionServiceTest {
         LocalDateTime dataHora = LocalDateTime.now();
         String chavePix = "destino@email.com";
 
-        UserModel authenticatedUser = UserModel.builder().id(usuarioId).name("Usuario Origem").build();
+        UserModel authenticatedUser = UserModel.builder().id(usuarioId).name("Usuario Origem").password("hash_senha").build();
         UserModel destinationUser = UserModel.builder().id(UUID.randomUUID()).name("Usuario Destino").build();
         PixTransactionRequest request = new PixTransactionRequest(
                 chavePix,
                 new BigDecimal("100.50"),
-                "Pagamento");
+                "Pagamento",
+                PixKeyType.EMAIL,
+                contaDestinoId,
+                "Senha@123",
+                UUID.randomUUID());
 
         AccountModel originAccount = AccountModel.builder()
                 .id(contaOrigemId)
@@ -88,8 +102,9 @@ class PixTransactionServiceTest {
                 .key(chavePix)
                 .build();
 
-        when(accountRepository.findByUserId(usuarioId)).thenReturn(Optional.of(originAccount));
-        when(pixKeyService.findByKeyForTransfer(chavePix)).thenReturn(destinationKey);
+        when(passwordEncoder.matches("Senha@123", "hash_senha")).thenReturn(true);
+        when(accountRepository.findAccountIdByUserId(usuarioId)).thenReturn(Optional.of(contaOrigemId));
+        when(pixKeyService.findByKeyForTransferForUpdate(PixKeyType.EMAIL, chavePix)).thenReturn(destinationKey);
         when(accountRepository.findByIdForUpdate(contaOrigemId))
                 .thenReturn(Optional.of(originAccount));
         when(accountRepository.findByIdForUpdate(contaDestinoId))
@@ -106,7 +121,9 @@ class PixTransactionServiceTest {
                 .dataHora(dataHora)
                 .build();
 
-        when(pixTransactionRepository.save(any(PixTransaction.class)))
+        when(recipientService.describe(destinationKey)).thenReturn(new PixRecipientResponse(
+                PixKeyType.EMAIL, chavePix, contaDestinoId, "Usuario Destino", null));
+        when(pixTransactionRepository.saveAndFlush(any(PixTransaction.class)))
                 .thenReturn(savedTransaction);
 
         PixTransactionResponse response = pixTransactionService.create(request, authenticatedUser);
@@ -119,7 +136,7 @@ class PixTransactionServiceTest {
         assertEquals(dataHora, response.dataHora());
 
         ArgumentCaptor<PixTransaction> transactionCaptor = ArgumentCaptor.forClass(PixTransaction.class);
-        verify(pixTransactionRepository).save(transactionCaptor.capture());
+        verify(pixTransactionRepository).saveAndFlush(transactionCaptor.capture());
 
         PixTransaction transactionSentToRepository = transactionCaptor.getValue();
         assertEquals(contaOrigemId, transactionSentToRepository.getContaOrigemId());
@@ -130,9 +147,12 @@ class PixTransactionServiceTest {
         assertEquals(new BigDecimal("150.50"), destinationAccount.getBalance());
         verify(accountRepository).save(originAccount);
         verify(accountRepository).save(destinationAccount);
-        verify(pixKeyService).findByKeyForTransfer(chavePix);
-        verify(pixNotificationService).notifyDebit(authenticatedUser, savedTransaction);
-        verify(pixNotificationService).notifyCredit(destinationUser, savedTransaction);
+        verify(pixKeyService).findByKeyForTransferForUpdate(PixKeyType.EMAIL, chavePix);
+        ArgumentCaptor<PixTransferCompletedEvent> eventCaptor = ArgumentCaptor.forClass(PixTransferCompletedEvent.class);
+        verify(events).publishEvent(eventCaptor.capture());
+        assertEquals(authenticatedUser.getName(), eventCaptor.getValue().sender().getName());
+        assertEquals(destinationUser.getName(), eventCaptor.getValue().recipient().getName());
+        assertEquals(savedTransaction, eventCaptor.getValue().transaction());
     }
 
     @Test
@@ -142,13 +162,18 @@ class PixTransactionServiceTest {
         UUID contaDestinoId = UUID.randomUUID();
         String chavePix = "destino@email.com";
 
-        UserModel authenticatedUser = UserModel.builder().id(usuarioId).build();
+        UserModel authenticatedUser = UserModel.builder().id(usuarioId).password("hash_senha").build();
         PixTransactionRequest request = new PixTransactionRequest(
                 chavePix,
                 new BigDecimal("1500.00"),
-                "Transferência alta");
+                "Transferência alta",
+                PixKeyType.EMAIL,
+                contaDestinoId,
+                "Senha@123",
+                UUID.randomUUID());
 
         AccountModel originAccount = AccountModel.builder()
+                .user(authenticatedUser)
                 .id(contaOrigemId)
                 .balance(new BigDecimal("2000.00"))
                 .status(AccountStatus.DESBLOQUEADA)
@@ -156,6 +181,7 @@ class PixTransactionServiceTest {
                 .transactionLimit(10)
                 .build();
         AccountModel destinationAccount = AccountModel.builder()
+                .user(UserModel.builder().id(UUID.randomUUID()).build())
                 .id(contaDestinoId)
                 .balance(new BigDecimal("50.00"))
                 .status(AccountStatus.DESBLOQUEADA)
@@ -166,8 +192,9 @@ class PixTransactionServiceTest {
                 .key(chavePix)
                 .build();
 
-        when(accountRepository.findByUserId(usuarioId)).thenReturn(Optional.of(originAccount));
-        when(pixKeyService.findByKeyForTransfer(chavePix)).thenReturn(destinationKey);
+        when(passwordEncoder.matches("Senha@123", "hash_senha")).thenReturn(true);
+        when(accountRepository.findAccountIdByUserId(usuarioId)).thenReturn(Optional.of(contaOrigemId));
+        when(pixKeyService.findByKeyForTransferForUpdate(PixKeyType.EMAIL, chavePix)).thenReturn(destinationKey);
         when(accountRepository.findByIdForUpdate(contaOrigemId)).thenReturn(Optional.of(originAccount));
         when(accountRepository.findByIdForUpdate(contaDestinoId)).thenReturn(Optional.of(destinationAccount));
 
@@ -179,7 +206,7 @@ class PixTransactionServiceTest {
         assertEquals(AccountStatus.BLOQUEADA, originAccount.getStatus());
 
         verify(accountRepository).save(originAccount);
-        verify(pixTransactionRepository, never()).save(any());
+        verify(pixTransactionRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -189,13 +216,18 @@ class PixTransactionServiceTest {
         UUID contaDestinoId = UUID.randomUUID();
         String chavePix = "destino@email.com";
 
-        UserModel authenticatedUser = UserModel.builder().id(usuarioId).build();
+        UserModel authenticatedUser = UserModel.builder().id(usuarioId).password("hash_senha").build();
         PixTransactionRequest request = new PixTransactionRequest(
                 chavePix,
                 new BigDecimal("50.00"),
-                "Transferência");
+                "Transferência",
+                PixKeyType.EMAIL,
+                contaDestinoId,
+                "Senha@123",
+                UUID.randomUUID());
 
         AccountModel originAccount = AccountModel.builder()
+                .user(authenticatedUser)
                 .id(contaOrigemId)
                 .balance(new BigDecimal("500.00"))
                 .status(AccountStatus.DESBLOQUEADA)
@@ -203,6 +235,7 @@ class PixTransactionServiceTest {
                 .transactionLimit(10)
                 .build();
         AccountModel destinationAccount = AccountModel.builder()
+                .user(UserModel.builder().id(UUID.randomUUID()).build())
                 .id(contaDestinoId)
                 .balance(new BigDecimal("50.00"))
                 .status(AccountStatus.DESBLOQUEADA)
@@ -213,8 +246,9 @@ class PixTransactionServiceTest {
                 .key(chavePix)
                 .build();
 
-        when(accountRepository.findByUserId(usuarioId)).thenReturn(Optional.of(originAccount));
-        when(pixKeyService.findByKeyForTransfer(chavePix)).thenReturn(destinationKey);
+        when(passwordEncoder.matches("Senha@123", "hash_senha")).thenReturn(true);
+        when(accountRepository.findAccountIdByUserId(usuarioId)).thenReturn(Optional.of(contaOrigemId));
+        when(pixKeyService.findByKeyForTransferForUpdate(PixKeyType.EMAIL, chavePix)).thenReturn(destinationKey);
         when(accountRepository.findByIdForUpdate(contaOrigemId)).thenReturn(Optional.of(originAccount));
         when(accountRepository.findByIdForUpdate(contaDestinoId)).thenReturn(Optional.of(destinationAccount));
         when(pixTransactionRepository.countByContaOrigemIdAndDataHoraBetween(any(), any(), any()))
@@ -228,7 +262,7 @@ class PixTransactionServiceTest {
         assertEquals(AccountStatus.BLOQUEADA, originAccount.getStatus());
 
         verify(accountRepository).save(originAccount);
-        verify(pixTransactionRepository, never()).save(any());
+        verify(pixTransactionRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -238,13 +272,18 @@ class PixTransactionServiceTest {
         UUID contaDestinoId = UUID.randomUUID();
         String chavePix = "destino@email.com";
 
-        UserModel authenticatedUser = UserModel.builder().id(usuarioId).build();
+        UserModel authenticatedUser = UserModel.builder().id(usuarioId).password("hash_senha").build();
         PixTransactionRequest request = new PixTransactionRequest(
                 chavePix,
                 new BigDecimal("50.00"),
-                "Transferência");
+                "Transferência",
+                PixKeyType.EMAIL,
+                contaDestinoId,
+                "Senha@123",
+                UUID.randomUUID());
 
         AccountModel originAccount = AccountModel.builder()
+                .user(authenticatedUser)
                 .id(contaOrigemId)
                 .balance(new BigDecimal("500.00"))
                 .status(AccountStatus.BLOQUEADA)
@@ -252,6 +291,7 @@ class PixTransactionServiceTest {
                 .transactionLimit(10)
                 .build();
         AccountModel destinationAccount = AccountModel.builder()
+                .user(UserModel.builder().id(UUID.randomUUID()).build())
                 .id(contaDestinoId)
                 .balance(new BigDecimal("50.00"))
                 .status(AccountStatus.DESBLOQUEADA)
@@ -262,8 +302,9 @@ class PixTransactionServiceTest {
                 .key(chavePix)
                 .build();
 
-        when(accountRepository.findByUserId(usuarioId)).thenReturn(Optional.of(originAccount));
-        when(pixKeyService.findByKeyForTransfer(chavePix)).thenReturn(destinationKey);
+        when(passwordEncoder.matches("Senha@123", "hash_senha")).thenReturn(true);
+        when(accountRepository.findAccountIdByUserId(usuarioId)).thenReturn(Optional.of(contaOrigemId));
+        when(pixKeyService.findByKeyForTransferForUpdate(PixKeyType.EMAIL, chavePix)).thenReturn(destinationKey);
         when(accountRepository.findByIdForUpdate(contaOrigemId)).thenReturn(Optional.of(originAccount));
         when(accountRepository.findByIdForUpdate(contaDestinoId)).thenReturn(Optional.of(destinationAccount));
 
@@ -271,8 +312,8 @@ class PixTransactionServiceTest {
                 AccountBlockedException.class,
                 () -> pixTransactionService.create(request, authenticatedUser));
 
-        assertTrue(exception.getMessage().contains("Conta de origem bloqueada por suspeita de fraude"));
-        verify(pixTransactionRepository, never()).save(any());
+        assertTrue(exception.getMessage().contains("Conta de origem bloqueada"));
+        verify(pixTransactionRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -282,13 +323,18 @@ class PixTransactionServiceTest {
         UUID contaDestinoId = UUID.randomUUID();
         String chavePix = "destino@email.com";
 
-        UserModel authenticatedUser = UserModel.builder().id(usuarioId).build();
+        UserModel authenticatedUser = UserModel.builder().id(usuarioId).password("hash_senha").build();
         PixTransactionRequest request = new PixTransactionRequest(
                 chavePix,
                 new BigDecimal("50.00"),
-                "Transferência");
+                "Transferência",
+                PixKeyType.EMAIL,
+                contaDestinoId,
+                "Senha@123",
+                UUID.randomUUID());
 
         AccountModel originAccount = AccountModel.builder()
+                .user(authenticatedUser)
                 .id(contaOrigemId)
                 .balance(new BigDecimal("500.00"))
                 .status(AccountStatus.DESBLOQUEADA)
@@ -296,6 +342,7 @@ class PixTransactionServiceTest {
                 .transactionLimit(10)
                 .build();
         AccountModel destinationAccount = AccountModel.builder()
+                .user(UserModel.builder().id(UUID.randomUUID()).build())
                 .id(contaDestinoId)
                 .balance(new BigDecimal("50.00"))
                 .status(AccountStatus.BLOQUEADA)
@@ -306,8 +353,9 @@ class PixTransactionServiceTest {
                 .key(chavePix)
                 .build();
 
-        when(accountRepository.findByUserId(usuarioId)).thenReturn(Optional.of(originAccount));
-        when(pixKeyService.findByKeyForTransfer(chavePix)).thenReturn(destinationKey);
+        when(passwordEncoder.matches("Senha@123", "hash_senha")).thenReturn(true);
+        when(accountRepository.findAccountIdByUserId(usuarioId)).thenReturn(Optional.of(contaOrigemId));
+        when(pixKeyService.findByKeyForTransferForUpdate(PixKeyType.EMAIL, chavePix)).thenReturn(destinationKey);
         when(accountRepository.findByIdForUpdate(contaOrigemId)).thenReturn(Optional.of(originAccount));
         when(accountRepository.findByIdForUpdate(contaDestinoId)).thenReturn(Optional.of(destinationAccount));
 
@@ -315,8 +363,8 @@ class PixTransactionServiceTest {
                 AccountBlockedException.class,
                 () -> pixTransactionService.create(request, authenticatedUser));
 
-        assertTrue(exception.getMessage().contains("Conta de destino bloqueada por suspeita de fraude"));
-        verify(pixTransactionRepository, never()).save(any());
+        assertTrue(exception.getMessage().contains("Conta de destino bloqueada"));
+        verify(pixTransactionRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -324,31 +372,41 @@ class PixTransactionServiceTest {
         UUID usuarioId = UUID.randomUUID();
         UUID contaId = UUID.randomUUID();
         String chavePix = "propria@email.com";
-        UserModel authenticatedUser = UserModel.builder().id(usuarioId).build();
+        UserModel authenticatedUser = UserModel.builder().id(usuarioId).password("hash_senha").build();
         AccountModel account = AccountModel.builder().id(contaId).build();
         PixKey pixKey = PixKey.builder().account(account).key(chavePix).build();
         PixTransactionRequest request = new PixTransactionRequest(
                 chavePix,
                 new BigDecimal("10.00"),
-                null);
+                null,
+                PixKeyType.EMAIL,
+                contaId,
+                "Senha@123",
+                UUID.randomUUID());
 
-        when(accountRepository.findByUserId(usuarioId)).thenReturn(Optional.of(account));
-        when(pixKeyService.findByKeyForTransfer(chavePix)).thenReturn(pixKey);
+        when(passwordEncoder.matches("Senha@123", "hash_senha")).thenReturn(true);
+        when(accountRepository.findAccountIdByUserId(usuarioId)).thenReturn(Optional.of(contaId));
+        when(pixKeyService.findByKeyForTransferForUpdate(PixKeyType.EMAIL, chavePix)).thenReturn(pixKey);
 
         assertThrows(
                 InvalidPixTransactionException.class,
                 () -> pixTransactionService.create(request, authenticatedUser));
 
-        verifyNoInteractions(pixTransactionRepository);
+        verify(pixTransactionRepository).findByContaOrigemIdAndIdempotencyKey(contaId, request.idempotencyKey());
+        verify(pixTransactionRepository, never()).saveAndFlush(any());
     }
 
     @Test
     void naoDevePermitirValorInvalido() {
-        UserModel authenticatedUser = UserModel.builder().id(UUID.randomUUID()).build();
+        UserModel authenticatedUser = UserModel.builder().id(UUID.randomUUID()).password("hash_senha").build();
         PixTransactionRequest request = new PixTransactionRequest(
                 "destino@email.com",
                 BigDecimal.ZERO,
-                null);
+                null,
+                PixKeyType.EMAIL,
+                UUID.randomUUID(),
+                "Senha@123",
+                UUID.randomUUID());
 
         assertThrows(
                 InvalidPixTransactionException.class,
@@ -359,7 +417,7 @@ class PixTransactionServiceTest {
 
     @Test
     void naoDevePermitirDadosObrigatoriosNulos() {
-        UserModel authenticatedUser = UserModel.builder().id(UUID.randomUUID()).build();
+        UserModel authenticatedUser = UserModel.builder().id(UUID.randomUUID()).password("hash_senha").build();
 
         assertThrows(
                 InvalidPixTransactionException.class,
@@ -368,7 +426,11 @@ class PixTransactionServiceTest {
         PixTransactionRequest requestSemValor = new PixTransactionRequest(
                 "destino@email.com",
                 null,
-                null);
+                null,
+                PixKeyType.EMAIL,
+                UUID.randomUUID(),
+                "Senha@123",
+                UUID.randomUUID());
 
         assertThrows(
                 InvalidPixTransactionException.class,

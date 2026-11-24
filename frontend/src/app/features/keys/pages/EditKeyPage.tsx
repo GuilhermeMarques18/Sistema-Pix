@@ -11,7 +11,6 @@ import { pixKeyMeta } from '../lib/pixKeyMeta';
 import { formatPhoneInput, normalizePhoneKey } from '../lib/formatPixKey';
 import { usePixKeys } from '../hooks/usePixKeys';
 import { registerKeySchema, type RegisterKeyFormData } from '../schemas/registerKey.schema';
-import { KeyEndpointUnavailableError } from '../services/pixKeys.service';
 
 export function EditKeyPage() {
   const { id } = useParams<{ id: string }>();
@@ -56,11 +55,7 @@ export function EditKeyPage() {
       await updateKey(target, data.value);
       navigate('/keys');
     } catch (err) {
-      setSubmitError(
-        err instanceof KeyEndpointUnavailableError
-          ? err.message
-          : getApiErrorMessage(err, 'Não foi possível alterar a chave.'),
-      );
+      setSubmitError(getApiErrorMessage(err, 'Não foi possível alterar a chave.'));
     }
   }
 
