@@ -22,6 +22,10 @@ export const pixSendService = {
     });
     return data;
   },
+  async schedulePix(payload: SendPixPayload & { scheduledAt: string }): Promise<unknown> {
+    const { data } = await api.post('/api/pix/scheduled-transactions', payload);
+    return data;
+  },
   async getReceipt(id: string): Promise<PixTransactionResponse> {
     const { data } = await api.get<PixTransactionResponse>(`/api/pix/transactions/${id}`);
     return data;

@@ -23,6 +23,7 @@ export interface SendPixFlowData {
   blockedBalance: number;
   pixLimit: number;
   accountStatus: AccountSummary['status'];
+  scheduledAt?: string;
 }
 
 export type SendPixStep = 'inserir-chave' | 'confirmar-conta' | 'inserir-valor' | 'confirmar-valor' | 'confirmar-dados' | 'digitar-senha' | 'sucesso';
