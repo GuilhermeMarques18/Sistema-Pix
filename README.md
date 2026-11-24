@@ -1,460 +1,133 @@
-# Sistema Pix
+# Pix Agendado (`feat/scheduled-pix`)
 
-## Sobre o Projeto
+Implementação do fluxo de **Pix Agendado** no projeto `sistem-pix`, contemplando persistência por meio de migração de banco de dados, agendamento com validação de senha, idempotência e data futura, execução assíncrona em background e integração com o fluxo de envio de Pix no frontend.
 
-# Backend
+## 📚 Documentação da API (Swagger / OpenAPI)
 
-## 💰 Contas Bancárias
-Este projeto é desenvolvido como parte da disciplina de **Gerência de Configuração**, na Universidade Federal do Ceará (UFC) - Campus Quixadá.
-z
-O objetivo é simular, na prática, um projeto real de desenvolvimento de software: uso de controle de versão em equipe, revisão de código via Pull Requests, boas práticas de POO e a construção de um sistema funcional que reproduz parte das funcionalidades do Pix.
+Com o backend em execução local, acesse a documentação da API:
 
-## Diagrama do Banco de Dados
+- **Swagger UI:** `http://localhost:8080/swagger-ui.html`  
+  *(ou `http://localhost:8080/swagger-ui/index.html`, conforme a configuração do SpringDoc no projeto).*
+- **OpenAPI JSON:** `http://localhost:8080/v3/api-docs`
 
-O modelo relacional cobre usuários (pessoa física/jurídica), contas bancárias, chaves Pix, contatos, transações, agendamentos, notificações e histórico de atividades.
+---
 
-![Modelo Relacional](https://claude.ai/chat/docs/modelo-relacional-pix.png)
+## 🧪 Como testar o fluxo de Pix Agendado
 
+> [!IMPORTANT]
+> O agendamento utiliza o endpoint dedicado `POST /api/pix/scheduled-transactions`, e não o endpoint de Pix imediato.
+>
+> A requisição exige autenticação JWT, senha da conta e um campo `scheduledAt` com data e horário futuros.
 
-## Protótipo (Telas)
+### 1. Autenticação (Remetente)
 
-Protótipo completo no Figma: https://www.figma.com/design/JS6mK1ufiTLm2fgmaVDWsj/Prot%C3%B3tipo---PIX?node-id=0-1&p=f&t=UPhI2I4n5j4rvHjS-0
+Realize o login com a conta de origem:
 
-O protótipo de interface cobre o fluxo completo do app: onboarding, login/cadastro, dashboard, perfil, extrato e gerenciamento de chaves Pix.
+**Endpoint:** `POST /api/auth/login`
 
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
 
-## Tecnologias Utilizadas
-
--   **Java 21** (JDK)
--   **Spring Boot** (Web MVC, Data JPA, Security, Validation)
--   **PostgreSQL** (Banco de dados relacional)
--   **Maven** (Gerenciador de dependências e build)
--   **Lombok** (Redução de código boilerplate)
-
-## Fluxo de Trabalho (Git)
-
-Seguindo o modelo pedido pela disciplina:
-
--   **`main`**: única branch de referência do projeto — deve estar sempre estável/funcional.
--   **Feature branches**: cada funcionalidade (ou conjunto de funcionalidades) é desenvolvida em uma branch própria a partir da `main` (ex: `feature/cadastro-usuario`, `feature/chave-pix`).
--   **Pull Requests**: ao concluir, abre-se um PR da feature branch para a `main`. O PR é revisado pelo coordenador do time antes do merge.
--   Commits devem ser regulares e a participação de cada integrante é avaliada pelo histórico de commits no PR.
-
-## Entregas do Projeto
-
-O desenvolvimento está dividido em três entregas principais:
-
-**Pix 1**
-
--   Cadastrar, atualizar e remover Usuário
--   Criar, atualizar e remover Conta Bancária
--   Receber e Transferir valores via Pix
--   Gerar Chave Pix Aleatória
--   Validar e Associar Chave Pix (CPF, CNPJ, Email ou Telefone) a uma conta
-
-**Pix 2**
-
--   Executar e Cancelar Transação Pix
--   Adicionar Transação ao Histórico / Listar Todas as Transações
--   Filtrar Transações por Data
--   Notificar Usuário sobre Transações
--   Gerar Relatório de Transações (por usuário e por período)
--   Consultar Saldo da Conta
--   Bloquear Conta por Suspeita de Fraude
-
-**Pix 3**
-
--   Definir Limite de Transações Diárias
--   Desbloquear Chave Pix Suspensa / Alterar Chave Pix Associada
--   Habilitar Notificação por SMS ou Email
--   Integrar Chaves Pix com Contatos do Usuário
--   Estorno de Valores de Transações Indevidas
--   Consulta de Histórico de Logins e Atividades
--   Registrar Localização de Transações Pix
--   Realizar Pix Agendado
-
-## Módulo de Conta Bancária (API - Endpoints)
-
-### Requisitos
-
-* Cada usuário pode possuir no máximo uma conta bancária, vinculada pelo `userId`.
-* O número da conta é gerado automaticamente com 8 dígitos.
-* A agência é fixa: `0001`.
-* O saldo inicial é `0.00`.
-* O limite de transações inicia em `0.00` e pode ser atualizado.
-* A remoção da conta é lógica: a conta passa a ter `ativo = false`.
-* Chaves PIX serão tratadas separadamente em outra branch.
-
-### Endpoints
-
-| Método | Rota                      | Descrição                       |
-| ------ | ------------------------- | ------------------------------- |
-| POST   | `/accounts`               | Cria uma conta                  |
-| GET    | `/accounts/{id}`          | Busca uma conta pelo ID         |
-| GET    | `/accounts/user/{userId}` | Busca a conta de um usuário     |
-| PATCH  | `/accounts/{id}`          | Atualiza o limite de transações |
-| DELETE | `/accounts/{id}`          | Remove uma conta                |
-
-### Criar conta
-
-`POST /accounts`
+**Body:**
 
 ```json
 {
-  "userId": "b3f1c2a0-1234-4a5b-9c8d-abcdef123456"
+  "email": "remetente@email.com",
+  "password": "senha-da-conta"
 }
 ```
 
-### Atualizar limite de transações
+Guarde o `token` retornado para utilizá-lo no cabeçalho de autorização das próximas requisições:
 
-`PATCH /accounts/{id}`
+```http
+Authorization: Bearer <token>
+```
+
+### 2. Resolver conta do destinatário
+
+Com o token do remetente, consulte a chave Pix do destinatário.
+
+A chave deve estar cadastrada e não pode pertencer à própria conta de origem.
+
+**Endpoint:** `GET /api/pix/recipients/resolve`
+
+```http
+GET /api/pix/recipients/resolve?tipo=EMAIL&chave=destino%40email.com
+Authorization: Bearer <token>
+```
+
+Utilize o `contaDestinoId` retornado na resposta para criar o agendamento.
+
+### 3. Criar o agendamento de Pix
+
+**Endpoint:** `POST /api/pix/scheduled-transactions`
+
+```http
+POST /api/pix/scheduled-transactions
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Body:**
 
 ```json
 {
-  "transactionLimit": 1500.00
+  "chavePix": "destino@email.com",
+  "valor": 10.00,
+  "descricao": "Teste de Pix agendado",
+  "tipoChave": "EMAIL",
+  "contaDestinoId": "UUID-RETORNADO-PELA-CONSULTA-DO-DESTINATARIO",
+  "password": "senha-da-conta",
+  "idempotencyKey": "7ca6c8c0-849c-4a2d-b95b-536cae56ff64",
+  "scheduledAt": "2026-12-01T10:00:00-03:00"
 }
 ```
 
-O limite não pode ser negativo.
+**Observações:**
 
-### Remover conta
+- Ajuste `scheduledAt` para uma data e horário futuros no momento do teste.
+- Utilize um novo UUID em `idempotencyKey` para cada novo agendamento.
+- Repetir a mesma chave de idempotência com os mesmos dados retorna o registro existente, evitando duplicidade de agendamentos.
 
-`DELETE /accounts/{id}`
+### 4. Acompanhar execução e transação
 
-A remoção é lógica. A conta recebe `ativo = false` e a data da remoção é armazenada em `deletedAt`.
+Após criar o agendamento, utilize o `id` retornado para consultar seu status.
 
-### Possíveis erros
+**Endpoint:** `GET /api/pix/scheduled-transactions/{id}`
 
-* `404 Not Found` — usuário ou conta não encontrada.
-* `409 Conflict` — usuário já possui uma conta.
-* `400 Bad Request` — dados enviados são inválidos.
-
-# Frontend — Stack e Padrões do Projeto
-
-## 1. Stack Principal
-
-| Tecnologia | Definição |
-|---|---|
-| **Framework** | Next.js |
-| **Biblioteca UI** | React |
-| **Linguagem** | TypeScript |
-| **Gerenciador de pacotes** | NPM |
-| **Gerenciamento de versão do Node.js** | `.nvmrc` |
-| **Arquitetura** | Feature-Based Architecture |
-| **Tipo de aplicação** | SPA (Single Page Application) |
-| **Roteamento** | React Router |
-
----
-
-## 2. Arquitetura
-
-O projeto seguirá o padrão **Feature-Based Architecture**, organizando o código por funcionalidades de negócio.
-
-Cada feature deve concentrar seus próprios componentes, páginas, hooks, serviços, schemas e demais recursos relacionados à funcionalidade.
-
-### Estrutura base
-
-```text
-src/
-├── app/
-│   ├── core/
-│   ├── shared/
-│   ├── features/
-│   └── layout/
-│
-├── assets/
-├── routes/
-└── ...
+```http
+GET /api/pix/scheduled-transactions/{id}
+Authorization: Bearer <token>
 ```
 
-### Princípios
+**Fluxo de execução:**
 
-- Organizar o código por **feature/funcionalidade**.
-- Evitar agrupamento excessivo por tipo de arquivo.
-- Manter baixo acoplamento entre features.
-- Reutilizações globais devem ficar em `shared`.
-- Recursos fundamentais da aplicação devem ficar em `core`.
-- Layouts e estruturas visuais devem ficar em `layout`.
+1. Inicialmente, o agendamento recebe o status `PENDING`.
+2. Após atingir a data e o horário programados, o executor verifica os agendamentos vencidos e inicia sua execução.
+3. O executor realiza essa verificação a cada **10 segundos**, por padrão.
+4. Após a tentativa de execução, o status é atualizado para `COMPLETED` ou `FAILED`.
 
----
+**Pré-requisitos para a conclusão com sucesso:**
 
-## 3. UI e Estilização
+- Conta de origem habilitada.
+- Saldo disponível suficiente.
+- Limite Pix suficiente para realizar a transferência.
 
-### UI Library
+Quando o agendamento atingir o status `COMPLETED`, utilize o `transactionId` retornado para consultar os detalhes da transação.
 
-**shadcn/ui**
+**Endpoint:** `GET /api/pix/transactions/{transactionId}`
 
-Utilizada como base para os componentes de interface da aplicação.
-
-### CSS Framework
-
-**Tailwind CSS**
-
-Responsável pela estilização e composição visual dos componentes.
-
-### Tema
-
-- **Somente Dark Mode**
-- Não haverá suporte a Light Mode.
-
----
-
-## 4. Identidade Visual
-
-### Cores
-
-| Elemento | Hexadecimal |
-|---|---|
-| **Logo** | `#32BCA9` |
-| **Elements** | `#33AA6E` |
-| **Botões** | `#29925F` |
-| **Background** | `#151B1F` |
-| **Text** | `#E6E6E6` |
-| **Text Secondary** | `#9EA2A6` |
-| **Text Tertiary** | `#4CB277` |
-| **Text Negative** | `#C86159` |
-| **Input** | `#23272C` |
-
----
-
-## 5. Tipografia
-
-A aplicação utilizará os seguintes tamanhos de fonte:
-
-| Uso | Tamanho |
-|---|---:|
-| Pequeno | `11px` |
-| Normal | `13px` |
-| Destaque | `15px` |
-| Título | `25px` |
-
-Os tamanhos devem ser utilizados de forma consistente para manter uma hierarquia visual clara.
-
----
-
-## 6. Formulários e Validação
-
-### React Hook Form
-
-Responsável pelo gerenciamento dos formulários.
-
-### Zod
-
-Responsável pela definição dos schemas e validação dos dados.
-
-### Padrão
-
-```text
-React Hook Form
-       ↓
-    Zod Schema
-       ↓
-Validação dos dados
+```http
+GET /api/pix/transactions/{transactionId}
+Authorization: Bearer <token>
 ```
 
-A validação deve ser centralizada nos schemas sempre que possível, evitando regras duplicadas nos componentes.
-
 ---
 
-## 7. Requisições HTTP
+## 📌 Resumo dos endpoints
 
-### Axios
-
-O **Axios** será utilizado como cliente HTTP da aplicação.
-
-Responsabilidades:
-
-- Comunicação com a API;
-- Configuração da URL base;
-- Envio de headers;
-- Inclusão do token JWT;
-- Tratamento de respostas;
-- Tratamento de erros HTTP;
-- Interceptors quando necessário.
-
----
-
-## 8. Autenticação
-
-### JWT
-
-A autenticação da aplicação utilizará **JSON Web Token (JWT)**.
-
-Fluxo esperado:
-
-```text
-Login
-  ↓
-API
-  ↓
-JWT
-  ↓
-Frontend
-  ↓
-Requisições autenticadas
-  ↓
-API
-```
-
-O token deverá ser incluído nas requisições autenticadas através do Axios.
-
----
-
-## 9. Tratamento de Erros HTTP
-
-A aplicação deverá possuir tratamento padronizado para erros HTTP.
-
-| Status | Tratamento |
-|---|---|
-| `400` | Dados inválidos / requisição incorreta |
-| `401` | Não autenticado / token inválido |
-| `403` | Sem permissão |
-| `404` | Recurso não encontrado |
-| `409` | Conflito |
-| `422` | Erro de validação |
-| `500` | Erro interno do servidor |
-
-O tratamento deve evitar que cada componente implemente sua própria lógica de erro.
-
-Preferencialmente, erros comuns devem ser tratados de forma centralizada através da camada HTTP/Axios.
-
----
-
-## 10. Aliases de Importação
-
-O projeto utilizará **um único alias** para importação de arquivos.
-
-### Alias
-
-```text
-@
-```
-```tsx
-import { Button } from '@/shared/components/Button';
-```
-
-### Regra
-
-Utilizar o alias `@` como padrão para imports internos da aplicação.
-
----
-
-# Resumo da Stack
-
-```text
-React
-└── Next.js
-
-Linguagem
-└── TypeScript
-
-Package Manager
-└── NPM
-
-Node Version
-└── .nvmrc
-
-Arquitetura
-└── Feature-Based Architecture
-
-Aplicação
-└── SPA
-
-Routing
-└── React Router
-
-UI
-└── shadcn/ui
-
-CSS
-└── Tailwind CSS
-
-Tema
-└── Dark Mode Only
-
-Formulários
-├── React Hook Form
-└── Zod
-
-HTTP
-└── Axios
-
-Autenticação
-└── JWT
-
-Importações
-└── Alias único: @
-
-Tratamento
-└── Erros HTTP centralizados
-```
-
-# Design System
-
-```text
-┌─────────────────────────────────────┐
-│           DARK MODE ONLY             │
-├─────────────────────────────────────┤
-│ Logo             #32BCA9            │
-│ Elements         #33AA6E            │
-│ Buttons          #29925F            │
-│ Background       #151B1F            │
-│ Input            #23272C            │
-│ Text             #E6E6E6            │
-│ Text Secondary   #9EA2A6            │
-│ Text Tertiary    #4CB277            │
-│ Text Negative    #C86159            │
-├─────────────────────────────────────┤
-│ Typography                           │
-│ 11px · 13px · 15px · 25px           │
-└─────────────────────────────────────┘
-```
-
-## Como Executar o Projeto 
-
-Pré-requisitos: Java 21 (JDK) e um PostgreSQL disponível (local ou via Docker).
-
-1.  **Clone o repositório**
-    
-    ```bash
-    git clone https://github.com/GuilhermeMarques18/Sistema-Pix.git
-    
-    
-    ```
-    
-2.  **Acesse a pasta do projeto**
-    
-    ```bash
-    cd Sistema-Pix
-    
-    
-    ```
-    
-3.  **Compile e baixe as dependências**
-    
-    ```bash
-    ./mvnw clean install       # Linux/Mac
-    .\mvnw.cmd clean install   # Windows
-    
-    
-    ```
-    
-4.  **Configure o Banco de Dados** Atualize as credenciais em `src/main/resources/application.properties` (URL, usuário e senha do PostgreSQL).
-    
-5.  **Execute a aplicação**
-    
-    ```bash
-    ./mvnw spring-boot:run       # Linux/Mac
-    .\mvnw.cmd spring-boot:run   # Windows
-    
-    
-    ```
-    
-
-## Equipe
-
--   [Guilherme Marques](https://github.com/GuilhermeMarques18)
--   [Ryan](https://github.com/ryanlbpimentel)
--   [Davy](https://github.com/dnastins)
--   [Geovana](https://github.com/Dev-Nana)
--   [Ana Luiza](https://github.com/Nalu2)
+| Método | Endpoint | Descrição |
+|:---:|---|---|
+| `POST` | `/api/auth/login` | Autenticação do remetente
