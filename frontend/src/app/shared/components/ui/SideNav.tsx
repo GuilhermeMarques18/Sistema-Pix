@@ -1,13 +1,15 @@
 "use client";
 
-import { House, ListBullets, Gear } from "@phosphor-icons/react";
+import { House, ListBullets, Gear, ShieldStar } from "@phosphor-icons/react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { PixIcon } from "./PixIcon";
+import { useSession } from "@/app/core/auth/SessionProvider";
 
 interface NavItem {
   label: string;
   icon: (active: boolean) => React.ReactNode;
   path: string;
+  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -33,12 +35,22 @@ const navItems: NavItem[] = [
     path: "/ajustes",
     icon: (active) => <Gear size={22} weight={active ? "fill" : "regular"} />,
   },
+  {
+    label: "Admin",
+    path: "/admin",
+    adminOnly: true,
+    icon: (active) => <ShieldStar size={22} weight={active ? "fill" : "regular"} />,
+  },
 ];
 
 export function SideNav() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { user } = useSession();
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'OWNER';
   const currentPath = pathname.replace(/\/$/, "") || "/";
+
+  const visibleItems = navItems.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <aside className="hidden md:flex flex-col w-72 min-h-screen border-r border-bg-input bg-bg shrink-0">
@@ -50,7 +62,7 @@ export function SideNav() {
 
       {/* Nav items */}
       <nav className="flex flex-col gap-1 p-3 flex-1" aria-label="Navegação principal">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = currentPath === item.path;
           return (
             <button
@@ -62,6 +74,8 @@ export function SideNav() {
                 ${
                   isActive
                     ? "bg-brand-element/10 text-brand-element"
+                    : item.adminOnly
+                    ? "text-text-warning/80 hover:bg-bg-input hover:text-text-warning"
                     : "text-text-secondary hover:bg-bg-input hover:text-text"
                 }`}
             >
