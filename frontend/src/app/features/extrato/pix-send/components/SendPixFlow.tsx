@@ -60,7 +60,7 @@ export function SendPixFlow({ onClose, onCompleted, scheduled = false }: SendPix
           {flow.step === 'inserir-valor' && <StepInserirValor flowData={flow.flowData} onConfirm={flow.submitValor} onBack={flow.goBack} error={flow.error} scheduled={scheduled} />}
           {flow.step === 'confirmar-valor' && <StepConfirmarValor flowData={flow.flowData} onConfirm={flow.confirmValor} onBack={flow.goBack} />}
           {flow.step === 'confirmar-dados' && <StepConfirmarDados flowData={flow.flowData} onConfirm={flow.confirmDados} onBack={flow.goBack} />}
-          {flow.step === 'digitar-senha' && <StepDigitarSenha onConfirm={flow.submitSenha} onBack={flow.goBack} onClose={onClose} isLoading={flow.isLoading} outcomeUnknown={flow.outcomeUnknown} error={flow.error} scheduled={scheduled} />}
+          {flow.step === 'digitar-senha' && <StepDigitarSenha onConfirm={flow.submitSenha} onBack={flow.goBack} onClose={onClose} isLoading={flow.isLoading} outcomeUnknown={flow.outcomeUnknown} error={flow.error} locationStatus={flow.locationStatus} locationMessage={flow.locationMessage} scheduled={scheduled} />}
           {flow.step === 'sucesso' && flow.receipt && <StepSucesso receipt={flow.receipt} isLoading={flow.isLoading} refreshError={flow.refreshError}
             onVoltar={() => { onClose(); navigate('/extrato'); }} onFazerNovoPix={() => { void flow.reset(); }} />}
           {flow.step === 'sucesso' && scheduled && <div className="flex min-h-full flex-col gap-5 p-4">

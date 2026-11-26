@@ -12,9 +12,21 @@ interface Props {
   isLoading: boolean;
   outcomeUnknown: boolean;
   error: string | null;
+  locationStatus: 'idle' | 'requesting' | 'captured' | 'denied' | 'unavailable';
+  locationMessage: string;
   scheduled?: boolean;
 }
-export function StepDigitarSenha({ onConfirm, onBack, onClose, isLoading, outcomeUnknown, error, scheduled = false }: Props) {
+export function StepDigitarSenha({
+  onConfirm,
+  onBack,
+  onClose,
+  isLoading,
+  outcomeUnknown,
+  error,
+  locationStatus = 'idle',
+  locationMessage = 'A localização é opcional; o PIX continuará mesmo se não for compartilhada.',
+  scheduled = false,
+}: Props) {
   const [password, setPassword] = useState('');
   const [validation, setValidation] = useState<string | null>(null);
   function submit(event: FormEvent) {
@@ -32,6 +44,9 @@ export function StepDigitarSenha({ onConfirm, onBack, onClose, isLoading, outcom
       {!isLoading && <BackButton onClick={outcomeUnknown ? onClose : onBack} label={outcomeUnknown ? 'Fechar envio pendente' : 'Voltar'} />}
       <h2 className="mt-5 text-lg font-semibold text-text">Confirme com sua senha</h2>
       <p className="mt-2 text-sm text-text-secondary">Use a mesma senha com que você entra na conta.</p>
+      <p role="status" aria-live="polite" className="mt-3 text-xs text-text-secondary">
+        {locationStatus === 'requesting' ? 'Solicitando localização...' : locationMessage}
+      </p>
       <form onSubmit={submit} className="mt-6 flex flex-1 flex-col gap-4">
         <label htmlFor="pix-confirm-password" className="text-sm text-text">Senha de acesso</label>
         <Input id="pix-confirm-password" type="password" autoComplete="current-password" maxLength={72} value={password}

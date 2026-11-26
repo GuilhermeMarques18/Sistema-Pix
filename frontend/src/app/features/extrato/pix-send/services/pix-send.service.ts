@@ -19,6 +19,7 @@ export const pixSendService = {
       descricao: payload.descricao,
       password: payload.password,
       idempotencyKey: payload.idempotencyKey,
+      ...(payload.location ? { location: payload.location } : {}),
     });
     return data;
   },

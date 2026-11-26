@@ -53,6 +53,12 @@ export function ExtratoTransactionItem({ transaction }: ExtratoTransactionItemPr
             ? transaction.contaContraparteId.slice(0, 8) + '...'
             : '—'}
         </p>
+        {transaction.location && (
+          <p className="mt-1 text-[10px] text-text-secondary">
+            Localização: {transaction.location.latitude.toFixed(5)}, {transaction.location.longitude.toFixed(5)}
+            {transaction.location.accuracyMeters != null && ` (±${Math.round(transaction.location.accuracyMeters)} m)`}
+          </p>
+        )}
       </div>
 
       {/* Valor + data */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { House, ListBullets, Gear, ShieldStar } from "@phosphor-icons/react";
+import { House, ListBullets, Gear, ShieldStar, AddressBook, ClockCounterClockwise } from "@phosphor-icons/react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { PixIcon } from "./PixIcon";
 import { useSession } from "@/app/core/auth/SessionProvider";
@@ -24,6 +24,16 @@ const navItems: NavItem[] = [
     icon: (active) => (
       <ListBullets size={22} weight={active ? "fill" : "regular"} />
     ),
+  },
+  {
+    label: "Contatos PIX",
+    path: "/contacts",
+    icon: (active) => <AddressBook size={22} weight={active ? "fill" : "regular"} />,
+  },
+  {
+    label: "Atividade",
+    path: "/activity",
+    icon: (active) => <ClockCounterClockwise size={22} weight={active ? "fill" : "regular"} />,
   },
   {
     label: "Chaves",
