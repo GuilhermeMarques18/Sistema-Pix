@@ -18,13 +18,17 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:}")
     private String remetente;
 
     @Async
     public void sendNotification(String para, String assunto, String texto) {
         if (para == null || para.isBlank()) {
             log.warn("Tentativa de envio de e-mail sem destinatário. Assunto: '{}'", assunto);
+            return;
+        }
+        if (remetente == null || remetente.isBlank()) {
+            log.error("E-mail não enviado para {}: MAIL_USERNAME não está configurado.", mask(para));
             return;
         }
 
