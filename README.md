@@ -130,4 +130,38 @@ Authorization: Bearer <token>
 
 | Método | Endpoint | Descrição |
 |:---:|---|---|
-| `POST` | `/api/auth/login` | Autenticação do remetente
+| `POST` | `/api/auth/login` | Autenticação do remetente |
+
+## Contatos PIX
+
+Contatos PIX são privados por usuário autenticado. Cada contato armazena nome/apelido, tipo e valor da chave; chaves são normalizadas e não podem ser repetidas entre os contatos do mesmo usuário.
+
+| Método | Endpoint | Descrição |
+|:---:|---|---|
+| `GET` | `/api/pix/contacts` | Lista os contatos do usuário autenticado |
+| `POST` | `/api/pix/contacts` | Cria um contato |
+| `PUT` | `/api/pix/contacts/{id}` | Atualiza um contato próprio |
+| `DELETE` | `/api/pix/contacts/{id}` | Remove um contato próprio |
+
+Exemplo de criação:
+
+```json
+{
+  "nome": "Maria",
+  "tipoChave": "EMAIL",
+  "chavePix": "maria@example.com"
+}
+```
+
+Use a seção **Contatos PIX** para gerenciar contatos. Na etapa de informar a chave ao enviar ou agendar um Pix, selecione um contato salvo para preencher o tipo e o valor da chave automaticamente.
+
+## Histórico de acessos e localização PIX
+
+Os endpoints abaixo retornam somente eventos do usuário autenticado. `page` é baseada em zero, `size` aceita até 100 registros, e `eventType`, `from` e `until` são filtros opcionais (`from`/`until` no formato `YYYY-MM-DD`).
+
+| Método | Endpoint | Descrição |
+|:---:|---|---|
+| `GET` | `/api/audit/logins` | Consulta logins com status, IP e dispositivo |
+| `GET` | `/api/audit/activities` | Consulta alterações e operações PIX |
+
+O envio e o agendamento de Pix aceitam `location` opcional com `latitude`, `longitude`, `accuracyMeters` e `source: "BROWSER"`. A ausência de localização não impede a operação. Quando salva, ela é retornada no campo `location` do detalhe e do histórico de transações.
