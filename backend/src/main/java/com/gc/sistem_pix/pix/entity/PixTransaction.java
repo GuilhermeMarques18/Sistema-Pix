@@ -9,6 +9,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -70,6 +71,9 @@ public class PixTransaction {
 
     @Column(name = "documento_destinatario_mascarado", length = 30, updatable = false)
     private String documentoDestinatarioMascarado;
+
+    @Embedded
+    private PixLocationData location;
 
     @Builder.Default
     @Column(name = "transacao_estornada", nullable = false)

@@ -2,6 +2,7 @@ package com.gc.sistem_pix.pix.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.never;
@@ -29,9 +31,14 @@ import com.gc.sistem_pix.account.entity.AccountModel;
 import com.gc.sistem_pix.account.enums.AccountStatus;
 import com.gc.sistem_pix.account.exception.AccountBlockedException;
 import com.gc.sistem_pix.account.repository.AccountRepository;
+import com.gc.sistem_pix.activity.service.UserActivityEventService;
 import com.gc.sistem_pix.pix.dto.PixTransactionRequest;
 import com.gc.sistem_pix.pix.dto.PixTransactionResponse;
+import com.gc.sistem_pix.pix.dto.PixLocationDTO;
+import com.gc.sistem_pix.pix.dto.PixLocationSource;
+import com.gc.sistem_pix.pix.dto.PixExtractResponse;
 import com.gc.sistem_pix.pix.entity.PixKey;
+import com.gc.sistem_pix.pix.entity.PixLocationData;
 import com.gc.sistem_pix.pix.entity.PixTransaction;
 import com.gc.sistem_pix.pix.enums.PixKeyType;
 import com.gc.sistem_pix.pix.exception.InvalidPixTransactionException;
@@ -59,6 +66,9 @@ class PixTransactionServiceTest {
     @Mock
     private ApplicationEventPublisher events;
 
+    @Mock
+    private UserActivityEventService activityEvents;
+
     @InjectMocks
     private PixTransactionService pixTransactionService;
 
@@ -73,6 +83,11 @@ class PixTransactionServiceTest {
 
         UserModel authenticatedUser = UserModel.builder().id(usuarioId).name("Usuario Origem").password("hash_senha").build();
         UserModel destinationUser = UserModel.builder().id(UUID.randomUUID()).name("Usuario Destino").build();
+        PixLocationDTO location = new PixLocationDTO(
+                new BigDecimal("-23.5505200"),
+                new BigDecimal("-46.6333080"),
+                new BigDecimal("14.5"),
+                PixLocationSource.BROWSER);
         PixTransactionRequest request = new PixTransactionRequest(
                 chavePix,
                 new BigDecimal("100.50"),
@@ -80,7 +95,8 @@ class PixTransactionServiceTest {
                 PixKeyType.EMAIL,
                 contaDestinoId,
                 "Senha@123",
-                UUID.randomUUID());
+                UUID.randomUUID(),
+                location);
 
         AccountModel originAccount = AccountModel.builder()
                 .id(contaOrigemId)
@@ -119,6 +135,7 @@ class PixTransactionServiceTest {
                 .valor(request.valor())
                 .descricao(request.descricao())
                 .dataHora(dataHora)
+                .location(PixLocationData.from(location))
                 .build();
 
         when(recipientService.describe(destinationKey)).thenReturn(new PixRecipientResponse(
@@ -143,6 +160,9 @@ class PixTransactionServiceTest {
         assertEquals(contaDestinoId, transactionSentToRepository.getContaDestinoId());
         assertEquals(request.valor(), transactionSentToRepository.getValor());
         assertEquals(request.descricao(), transactionSentToRepository.getDescricao());
+        assertEquals(location.latitude(), transactionSentToRepository.getLocation().getLatitude());
+        assertEquals(location.longitude(), response.location().longitude());
+        assertEquals(location.accuracyMeters(), response.location().accuracyMeters());
         assertEquals(new BigDecimal("99.50"), originAccount.getBalance());
         assertEquals(new BigDecimal("150.50"), destinationAccount.getBalance());
         verify(accountRepository).save(originAccount);
@@ -153,6 +173,37 @@ class PixTransactionServiceTest {
         assertEquals(authenticatedUser.getName(), eventCaptor.getValue().sender().getName());
         assertEquals(destinationUser.getName(), eventCaptor.getValue().recipient().getName());
         assertEquals(savedTransaction, eventCaptor.getValue().transaction());
+    }
+
+    @Test
+    void extratoIncluiLocalizacaoPersistidaNaTransacao() {
+        UUID userId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UserModel user = UserModel.builder().id(userId).build();
+        AccountModel account = AccountModel.builder().id(accountId).user(user).build();
+        PixLocationData location = PixLocationData.builder()
+                .latitude(new BigDecimal("-23.55"))
+                .longitude(new BigDecimal("-46.63"))
+                .accuracyMeters(new BigDecimal("18"))
+                .source(PixLocationSource.BROWSER)
+                .build();
+        PixTransaction transaction = PixTransaction.builder()
+                .idTransacao(UUID.randomUUID())
+                .contaOrigemId(accountId)
+                .contaDestinoId(UUID.randomUUID())
+                .valor(BigDecimal.ONE)
+                .dataHora(LocalDateTime.now())
+                .location(location)
+                .build();
+        when(accountRepository.findByUserId(userId)).thenReturn(Optional.of(account));
+        when(pixTransactionRepository.findAllByContaIdAndPeriodo(
+                eq(accountId), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(List.of(transaction));
+
+        PixExtractResponse response = pixTransactionService.gerarExtrato(user, null, null);
+
+        assertEquals(location.getLatitude(), response.transacoes().get(0).location().latitude());
+        assertEquals(location.getLongitude(), response.transacoes().get(0).location().longitude());
     }
 
     @Test

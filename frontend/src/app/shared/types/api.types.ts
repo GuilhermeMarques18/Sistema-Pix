@@ -69,7 +69,17 @@ export interface PixTransactionResponse {
   tipoChave: PixKeyType | null;
   nomeDestinatario: string | null;
   documentoDestinatarioMascarado: string | null;
+  location?: PixLocation | null;
 }
+
+export interface PixLocation {
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+  source: 'BROWSER';
+}
+
+export type PixLocationPayload = PixLocation;
 
 export interface PixRecipientResponse {
   tipo: PixKeyType;
@@ -86,6 +96,7 @@ export interface PixExtractItemResponse {
   valor: number;
   descricao: string | null;
   contaContraparteId: string;
+  location?: PixLocation | null;
 }
 
 export interface PixExtractResponse {

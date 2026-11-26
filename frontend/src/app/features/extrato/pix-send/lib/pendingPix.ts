@@ -18,6 +18,13 @@ export function readPendingPix(accountId: string, scheduled = false): PendingPix
       || typeof value.flowData.chavePix !== 'string' || typeof value.flowData.contaDestinoId !== 'string'
       || typeof value.flowData.recipientName !== 'string' || typeof value.flowData.descricao !== 'string'
       || !Number.isFinite(value.flowData.valor) || value.flowData.valor <= 0
+      || (value.flowData.locationCaptureAttempted !== undefined && typeof value.flowData.locationCaptureAttempted !== 'boolean')
+      || (value.flowData.location != null && (
+        !Number.isFinite(value.flowData.location.latitude)
+        || !Number.isFinite(value.flowData.location.longitude)
+        || (value.flowData.location.accuracyMeters != null && !Number.isFinite(value.flowData.location.accuracyMeters))
+        || value.flowData.location.source !== 'BROWSER'
+      ))
       || (scheduled && (typeof value.flowData.scheduledAt !== 'string' || !Number.isFinite(Date.parse(value.flowData.scheduledAt))))) return null;
     return value;
   } catch { return null; }

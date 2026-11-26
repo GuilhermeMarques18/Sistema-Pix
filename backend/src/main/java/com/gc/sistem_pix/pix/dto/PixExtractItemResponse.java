@@ -12,5 +12,15 @@ public record PixExtractItemResponse(
         TipoOperacaoPix tipo,
         BigDecimal valor,
         String descricao,
-        UUID contaContraparteId) {
+        UUID contaContraparteId,
+        PixLocationResponse location) {
+    public PixExtractItemResponse(
+            UUID idTransacao,
+            LocalDateTime dataHora,
+            TipoOperacaoPix tipo,
+            BigDecimal valor,
+            String descricao,
+            UUID contaContraparteId) {
+        this(idTransacao, dataHora, tipo, valor, descricao, contaContraparteId, null);
+    }
 }

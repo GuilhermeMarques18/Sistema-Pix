@@ -9,6 +9,7 @@ import { normalizePixKey } from '@/app/shared/lib/pixKey';
 import type { AccountSummary, PixKeyType, PixTransactionResponse } from '@/app/shared/types/api.types';
 import { pixSendService } from '../services/pix-send.service';
 import { readPendingPix, savePendingPix, clearPendingPix } from '../lib/pendingPix';
+import { capturePixLocation } from '../lib/pixLocation';
 import { centsToDecimal, moneyToCents } from '../lib/money';
 import type { SendPixFlowData, SendPixStep } from '../types/pix-send.types';
 
@@ -19,6 +20,7 @@ function initialData(account: AccountSummary | null): SendPixFlowData {
     valor: 0, descricao: '', availableBalance: account?.availableBalance ?? 0,
     blockedBalance: account?.blockedBalance ?? 0, pixLimit: account?.pixLimit ?? 0,
     accountStatus: account?.status ?? 'BLOQUEADA',
+    location: null, locationCaptureAttempted: false,
   };
 }
 
@@ -32,6 +34,8 @@ export function useSendPix(onSuccess?: () => Promise<unknown>, scheduled = false
   const [outcomeUnknown, setOutcomeUnknown] = useState(!!pending);
   const [error, setError] = useState<string | null>(pending ? (scheduled ? 'Há um agendamento com resultado não confirmado nesta aba. Confirme sua senha para consultar ou concluir o mesmo pedido.' : 'Há um envio pendente nesta aba. Confirme sua senha para consultar ou concluir o mesmo pedido.') : null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'captured' | 'denied' | 'unavailable'>('idle');
+  const [locationMessage, setLocationMessage] = useState('A localização é opcional; o PIX continuará mesmo se não for compartilhada.');
   const requestId = useRef(pending?.requestId ?? crypto.randomUUID());
   const busy = useRef(false);
 
@@ -84,21 +88,54 @@ export function useSendPix(onSuccess?: () => Promise<unknown>, scheduled = false
     if (scheduled && !outcomeUnknown && (!flowData.scheduledAt || Date.parse(flowData.scheduledAt) <= Date.now())) {
       setError('A data do agendamento deve ser futura. Volte e escolha outra data.'); return;
     }
-    // Guardar somente dados necessários ao replay, nunca a senha.
-    if (!savePendingPix({ version: 1, sourceAccountId: account.id, requestId: requestId.current, flowData }, scheduled)) {
-      setError('Não foi possível preparar a recuperação do envio. Habilite o armazenamento desta aba e tente novamente.');
-      return;
-    }
     busy.current = true;
     setIsLoading(true);
     setError(null);
     try {
+      let requestFlowData = flowData;
+      if (!flowData.locationCaptureAttempted) {
+        setLocationStatus('requesting');
+        setLocationMessage('Obtendo localização. Se você não autorizar, poderá continuar normalmente.');
+        const capture = await capturePixLocation();
+        requestFlowData = {
+          ...flowData,
+          location: capture.location,
+          locationCaptureAttempted: true,
+          locationCaptureStatus: capture.status,
+        };
+        setFlowData(requestFlowData);
+        setLocationStatus(capture.status);
+        setLocationMessage(capture.status === 'captured'
+          ? 'Localização capturada para registrar esta transação.'
+          : 'Localização não compartilhada. O PIX continuará normalmente.');
+      } else {
+        const status = flowData.locationCaptureStatus ?? (flowData.location ? 'captured' : 'unavailable');
+        setLocationStatus(status);
+        setLocationMessage(status === 'captured'
+          ? 'Localização capturada para registrar esta transação.'
+          : 'Localização não compartilhada. O PIX continuará normalmente.');
+      }
+
+      // Guardar os dados de replay, inclusive localização opcional, nunca a senha.
+      if (!savePendingPix({
+        version: 1,
+        sourceAccountId: account.id,
+        requestId: requestId.current,
+        flowData: requestFlowData,
+      }, scheduled)) {
+        setError('Não foi possível preparar a recuperação do envio. Habilite o armazenamento desta aba e tente novamente.');
+        return;
+      }
+
       const payload = {
-        chavePix: flowData.chavePix, tipoChave: flowData.keyType, contaDestinoId: flowData.contaDestinoId,
-        valor: centsToDecimal(moneyToCents(flowData.valor)), descricao: flowData.descricao || null,
+        chavePix: requestFlowData.chavePix, tipoChave: requestFlowData.keyType!, contaDestinoId: requestFlowData.contaDestinoId,
+        valor: centsToDecimal(moneyToCents(requestFlowData.valor)), descricao: requestFlowData.descricao || null,
         password, idempotencyKey: requestId.current,
+        ...(requestFlowData.location ? { location: requestFlowData.location } : {}),
       };
-      const result = scheduled ? await pixSendService.schedulePix({ ...payload, scheduledAt: flowData.scheduledAt! }) : await pixSendService.sendPix(payload);
+      const result = scheduled
+        ? await pixSendService.schedulePix({ ...payload, scheduledAt: requestFlowData.scheduledAt! })
+        : await pixSendService.sendPix(payload);
       clearPendingPix(account.id, scheduled);
       setOutcomeUnknown(false);
       if (!scheduled) setReceipt(result as PixTransactionResponse);
@@ -138,6 +175,8 @@ export function useSendPix(onSuccess?: () => Promise<unknown>, scheduled = false
     try {
       const freshAccount = await userService.getMyAccount();
       setFlowData(initialData(freshAccount));
+      setLocationStatus('idle');
+      setLocationMessage('A localização é opcional; o PIX continuará mesmo se não for compartilhada.');
       requestId.current = crypto.randomUUID();
       setReceipt(null);
       setError(null);
@@ -150,7 +189,7 @@ export function useSendPix(onSuccess?: () => Promise<unknown>, scheduled = false
   const confirmValor = useCallback(() => setStep('confirmar-dados'), []);
   const confirmDados = useCallback(() => setStep('digitar-senha'), []);
   return {
-    step, flowData, receipt, isLoading, outcomeUnknown, error, refreshError,
+    step, flowData, receipt, isLoading, outcomeUnknown, error, refreshError, locationStatus, locationMessage,
     submitKey, submitValor, submitSenha, confirmAccount, confirmValor, confirmDados, goBack, reset,
   };
 }

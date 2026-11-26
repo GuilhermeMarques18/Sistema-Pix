@@ -24,12 +24,12 @@ public class PixNotificationService {
         try {
             notifyDebit(event.sender(), event.transaction());
         } catch (RuntimeException exception) {
-            log.error("Falha na notificação de débito da transação {}", event.transaction().getIdTransacao());
+            log.error("Falha na notificação de débito da transação {}", event.transaction().getIdTransacao(), exception);
         }
         try {
             notifyCredit(event.recipient(), event.transaction());
         } catch (RuntimeException exception) {
-            log.error("Falha na notificação de crédito da transação {}", event.transaction().getIdTransacao());
+            log.error("Falha na notificação de crédito da transação {}", event.transaction().getIdTransacao(), exception);
         }
     }
 

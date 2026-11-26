@@ -15,6 +15,8 @@ import { ProfilePage } from '@/app/features/profile/pages/ProfilePage';
 import { ReceivePage } from '@/app/features/receive/pages/ReceivePage';
 import { AdminPage } from '@/app/features/admin/pages/AdminPage';
 import { AccountPendingPage } from '@/app/features/admin/pages/AccountPendingPage';
+import { ContactsPage } from '@/app/features/contacts/pages/ContactsPage';
+import { ActivityHistoryPage } from '@/app/features/activity-history/pages/ActivityHistoryPage';
 
 export function AppRoutes() {
   return (
@@ -34,6 +36,8 @@ export function AppRoutes() {
         <Route element={<AppShellLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/extrato" element={<ExtratoPage />} />
+          <Route path="/contacts" element={<ContactsPage />} />
+          <Route path="/activity" element={<ActivityHistoryPage />} />
           <Route path="/receive" element={<ReceivePage />} />
           <Route path="/keys">
             <Route index element={<KeysPage />} />

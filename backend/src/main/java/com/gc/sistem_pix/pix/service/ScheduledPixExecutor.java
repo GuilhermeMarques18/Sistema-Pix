@@ -48,7 +48,12 @@ public class ScheduledPixExecutor {
         if (!s.getStatus().equals("PENDING") || s.getScheduledAt().isAfter(Instant.now())) return;
         UUID userId = accounts.findUserIdByAccountId(s.getSourceId()).orElseThrow(() -> new ResourceNotFoundException("Conta de origem não encontrada"));
         PixTransactionRequest request = new PixTransactionRequest(s.getPixKey(), s.getAmount(), s.getDescription(),
-                s.getKeyType(), s.getDestinationId(), null, s.getId());
+                s.getKeyType(), s.getDestinationId(), null, s.getId(),
+                s.getLocation() == null ? null : new com.gc.sistem_pix.pix.dto.PixLocationDTO(
+                        s.getLocation().getLatitude(),
+                        s.getLocation().getLongitude(),
+                        s.getLocation().getAccuracyMeters(),
+                        s.getLocation().getSource()));
         try {
             var result = transfers.transfer(request, userId);
             s.setTransactionId(result.idTransacao());

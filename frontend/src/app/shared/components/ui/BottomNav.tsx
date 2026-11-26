@@ -83,7 +83,7 @@ function PixFillIcon({
   );
 }
 
-import { House, ListBullets, Gear } from "@phosphor-icons/react";
+import { House, ListBullets, Gear, AddressBook, ClockCounterClockwise } from "@phosphor-icons/react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 interface NavItem {
@@ -104,6 +104,16 @@ const navItems: NavItem[] = [
     icon: (active) => (
       <ListBullets size={24} weight={active ? "fill" : "regular"} />
     ),
+  },
+  {
+    label: "Contatos",
+    path: "/contacts",
+    icon: (active) => <AddressBook size={24} weight={active ? "fill" : "regular"} />,
+  },
+  {
+    label: "Atividade",
+    path: "/activity",
+    icon: (active) => <ClockCounterClockwise size={24} weight={active ? "fill" : "regular"} />,
   },
   {
     label: "Chaves",
@@ -131,7 +141,7 @@ export function BottomNav() {
         border-t border-bg-input bg-bg z-50"
       aria-label="Navegação principal"
     >
-      <div className="grid grid-cols-4 py-2">
+      <div className="grid grid-cols-6 py-2">
         {navItems.map((item) => {
           const isActive = currentPath === item.path;
           return (

@@ -6,6 +6,10 @@ Retorna `201`, `Location` e JSON com `id`, `contaOrigemId`, `contaDestinoId`, `c
 
 O executor consulta pendências a cada 10 segundos (`app.pix.scheduled-poll-ms`), inclusive após reinicialização. Cada execução trava o agendamento e transfere numa única transação, usando as travas de chave e contas e validações do Pix imediato. Erros de negócio geram `FAILED` com motivo, sem nova tentativa; erros de infraestrutura são registrados no log e permanecem `PENDING` para nova tentativa. Sucesso gera `COMPLETED` e o identificador do comprovante. Os limites e saldo são avaliados no momento da execução; não há recorrência.
 
+### Gerenciamento
+
+`GET /api/pix/scheduled-transactions` lista os agendamentos `PENDING` da conta do usuário autenticado, ordenados pela data prevista. `PUT /api/pix/scheduled-transactions/{id}` recebe `valor`, `scheduledAt` (ISO-8601 com offset) e `descricao` (opcional) para atualizar um agendamento. `DELETE /api/pix/scheduled-transactions/{id}` cancela o agendamento e retorna `204`. Alterações e cancelamentos verificam a titularidade e só são aceitos enquanto o estado for `PENDING`; o bloqueio transacional serializa essas operações com o executor.
+
 ### Validação
 
 Execute `cd backend && ./mvnw test`. O teste de contexto existente requer banco PostgreSQL e `DB_URL` configurados; os testes unitários específicos podem ser executados com `./mvnw -Dtest=ScheduledPixServiceTest,PixTransactionServiceTest test`.
