@@ -165,3 +165,16 @@ Os endpoints abaixo retornam somente eventos do usuário autenticado. `page` é 
 | `GET` | `/api/audit/activities` | Consulta alterações e operações PIX |
 
 O envio e o agendamento de Pix aceitam `location` opcional com `latitude`, `longitude`, `accuracyMeters` e `source: "BROWSER"`. A ausência de localização não impede a operação. Quando salva, ela é retornada no campo `location` do detalhe e do histórico de transações.
+
+## Notificações de Pix por e-mail
+
+Após uma transferência Pix ser confirmada, remetente e destinatário recebem, cada um, um e-mail de notificação se tiverem escolhido **E-mail** em **Ajustes → Notificações de PIX**. Transferências agendadas também usam esse fluxo quando são executadas.
+
+Configure o SMTP do Gmail no `.env` (ou como variáveis de ambiente no deploy):
+
+```dotenv
+MAIL_USERNAME=seu-endereco@gmail.com
+MAIL_PASSWORD=sua-senha-de-aplicativo-do-gmail
+```
+
+Para contas com autenticação em duas etapas, use uma senha de app do Gmail, não a senha normal da conta. Sem `MAIL_USERNAME` e `MAIL_PASSWORD`, a aplicação inicia normalmente, mas registra que não pode enviar e-mails.
