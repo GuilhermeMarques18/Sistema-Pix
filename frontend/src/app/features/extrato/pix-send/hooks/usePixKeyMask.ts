@@ -54,11 +54,17 @@ export function usePixKeyMask() {
     setKeyType(detectKeyType(value));
   }
 
+  function setKey(value: string, type: PixKeyType) {
+    setDisplayValue(value);
+    setKeyType(type);
+  }
+
   return {
     displayValue,
     rawValue: displayValue,
     keyType,
     typeLabel: keyType ? KEY_TYPE_LABEL[keyType] : null,
     handleChange,
+    setKey,
   };
 }

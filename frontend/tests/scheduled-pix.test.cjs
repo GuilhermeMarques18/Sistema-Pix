@@ -148,3 +148,63 @@ test('tela de senha permite tentar novamente um agendamento incerto', async () =
   assert.equal(renderer.root.findByType('input').props.value, '');
   renderer.unmount();
 });
+
+test('PIX imediato envia localização do navegador quando autorizada', async () => {
+  calls.length = 0;
+  fail = false;
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: {
+      geolocation: {
+        getCurrentPosition(success) {
+          success({ coords: { latitude: -23.55, longitude: -46.63, accuracy: 18 } });
+        },
+      },
+    },
+  });
+  let flow;
+  function Harness() { flow = useSendPix(); return null; }
+  let renderer;
+  await act(async () => { renderer = create(React.createElement(Harness)); });
+  await act(async () => { await flow.submitKey('key', 'EMAIL'); });
+  act(() => flow.submitValor(1, 'teste'));
+  await act(async () => { await flow.submitSenha('123456'); });
+  assert.deepEqual(calls[0][1].location, {
+    latitude: -23.55, longitude: -46.63, accuracyMeters: 18, source: 'BROWSER',
+  });
+  assert.equal(flow.locationStatus, 'captured');
+  renderer.unmount();
+  if (originalNavigator) Object.defineProperty(globalThis, 'navigator', originalNavigator);
+  else delete globalThis.navigator;
+});
+
+test('PIX agendado continua sem localização quando a permissão é negada', async () => {
+  calls.length = 0;
+  fail = false;
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: {
+      geolocation: {
+        getCurrentPosition(_success, failure) {
+          failure({ code: 1 });
+        },
+      },
+    },
+  });
+  let flow;
+  function Harness() { flow = useSendPix(undefined, true); return null; }
+  let renderer;
+  await act(async () => { renderer = create(React.createElement(Harness)); });
+  await act(async () => { await flow.submitKey('key', 'EMAIL'); });
+  act(() => flow.submitValor(1, '', new Date(Date.now() + 86400000).toISOString().slice(0, 16)));
+  await act(async () => { await flow.submitSenha('123456'); });
+  assert.equal(calls[0][0], 'scheduled');
+  assert.equal(calls[0][1].location, undefined);
+  assert.equal(flow.locationStatus, 'denied');
+  assert.match(flow.locationMessage, /PIX continuará normalmente/);
+  renderer.unmount();
+  if (originalNavigator) Object.defineProperty(globalThis, 'navigator', originalNavigator);
+  else delete globalThis.navigator;
+});

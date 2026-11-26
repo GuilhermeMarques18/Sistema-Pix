@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface ScheduledPixRepository extends JpaRepository<ScheduledPix, UUID> {
     Optional<ScheduledPix> findBySourceIdAndIdempotencyKey(UUID sourceId, UUID key);
+    List<ScheduledPix> findBySourceIdAndStatusOrderByScheduledAtAsc(UUID sourceId, String status);
     List<ScheduledPix> findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAsc(String status, Instant now, Pageable page);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from ScheduledPix s where s.id = :id")

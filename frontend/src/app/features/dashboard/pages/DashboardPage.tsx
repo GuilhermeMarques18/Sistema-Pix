@@ -8,6 +8,7 @@ import {
   QuickActions,
   TransactionList,
 } from '../components';
+import { ScheduledPixList } from '../components/ScheduledPixList';
 
 export function DashboardPage() {
   const { account, transactions, transactionsUsed, isLoading, error, reload } = useDashboard();
@@ -50,6 +51,8 @@ export function DashboardPage() {
         blocked={account.status === 'BLOQUEADA'}
         onRefresh={reload}
       />
+
+      <ScheduledPixList />
 
       {/* Divisor sutil */}
       <div className="mx-4 my-3 h-px bg-bg-input" />

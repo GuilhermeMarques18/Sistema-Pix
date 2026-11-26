@@ -1,8 +1,11 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, ArrowRight, CircleNotch } from '@phosphor-icons/react';
 import { BackButton } from '@/app/shared/components/ui';
+import { getApiErrorMessage } from '@/app/shared/lib/apiError';
+import { pixKeyLabels } from '@/app/shared/lib/pixKey';
+import { pixContactsService, type PixContact } from '@/app/features/contacts/services/pixContacts.service';
 import { usePixKeyMask } from '../hooks/usePixKeyMask';
 import { pixSendService } from '../services/pix-send.service';
 import type { PixKeyType } from '@/app/shared/types/api.types';
@@ -15,12 +18,23 @@ interface StepInserirChaveProps {
 }
 
 export function StepInserirChave({ onConfirm, onClose, isLoading, error }: StepInserirChaveProps) {
-  const { displayValue, rawValue, keyType, typeLabel, handleChange } = usePixKeyMask();
+  const { displayValue, rawValue, keyType, typeLabel, handleChange, setKey } = usePixKeyMask();
+  const [contacts, setContacts] = useState<PixContact[]>([]);
+  const [contactsError, setContactsError] = useState<string | null>(null);
+  const [loadingContacts, setLoadingContacts] = useState(true);
   const [validating, setValidating] = useState(false);
   const [validated, setValidated] = useState(false);
   const [validateError, setValidateError] = useState<string | null>(null);
   const lastValidated = useRef<string>('');
-  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    pixContactsService.listMine()
+      .then((items) => { if (active) setContacts(items); })
+      .catch((err: unknown) => { if (active) setContactsError(getApiErrorMessage(err, 'Não foi possível carregar seus contatos salvos.')); })
+      .finally(() => { if (active) setLoadingContacts(false); });
+    return () => { active = false; };
+  }, []);
 
   const hasValue = displayValue.trim().length > 0;
 
@@ -83,10 +97,35 @@ export function StepInserirChave({ onConfirm, onClose, isLoading, error }: StepI
 
       {/* Form */}
       <form
-        ref={formRef}
         onSubmit={handleSubmit}
         className="flex flex-col flex-1 px-4 pt-5"
       >
+        {loadingContacts && <p className="mb-4 text-xs text-text-secondary">Carregando contatos salvos...</p>}
+        {contactsError && <p role="status" className="mb-4 text-xs text-text-secondary">{contactsError}</p>}
+        {contacts.length > 0 && (
+          <label htmlFor="saved-pix-contact" className="mb-5 flex flex-col gap-1 text-xs text-text-secondary">
+            Usar contato salvo
+            <select
+              id="saved-pix-contact"
+              defaultValue=""
+              disabled={isLoading || validating}
+              onChange={(event) => {
+                const contact = contacts.find((item) => item.id === event.target.value);
+                if (!contact) return;
+                setKey(contact.chavePix, contact.tipoChave);
+                setValidated(false);
+                setValidateError(null);
+                lastValidated.current = '';
+              }}
+              className="h-10 rounded-md border border-bg-input bg-bg-input px-3 text-sm text-text focus:border-brand-logo focus:outline-none focus:ring-1 focus:ring-brand-logo"
+            >
+              <option value="">Selecione um contato</option>
+              {contacts.map((contact) => (
+                <option key={contact.id} value={contact.id}>{contact.nome} · {pixKeyLabels[contact.tipoChave]}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <p className="text-sm font-bold text-text mb-3">Chave PIX do destinatário</p>
 
         {/* Input */}

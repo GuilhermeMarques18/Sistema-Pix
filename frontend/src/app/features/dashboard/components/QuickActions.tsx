@@ -20,6 +20,11 @@ export function QuickActions({ onRefresh, blocked }: QuickActionsProps) {
   const [sendPixOpen, setSendPixOpen] = useState(false);
   const [scheduled, setScheduled] = useState(false);
 
+  async function refreshAfterPix() {
+    await onRefresh();
+    if (scheduled) window.dispatchEvent(new Event('scheduled-pix-updated'));
+  }
+
   const actions = [
     { icon: ArrowLineDown, label: 'Receber', onClick: () => navigate('/receive'), disabled: false },
     { icon: ArrowLineUp, label: 'Enviar', onClick: () => { setScheduled(false); setSendPixOpen(true); }, disabled: blocked },
@@ -51,7 +56,7 @@ export function QuickActions({ onRefresh, blocked }: QuickActionsProps) {
       {sendPixOpen && (
         <SendPixFlow
           scheduled={scheduled}
-          onCompleted={onRefresh}
+          onCompleted={refreshAfterPix}
           onClose={() => { setSendPixOpen(false); void onRefresh(); }}
         />
       )}
