@@ -19,8 +19,10 @@ import com.gc.sistem_pix.account.entity.AccountModel;
 import com.gc.sistem_pix.account.enums.AccountStatus;
 import com.gc.sistem_pix.account.exception.AccountBlockedException;
 import com.gc.sistem_pix.account.repository.AccountRepository;
+import com.gc.sistem_pix.activity.service.UserActivityEventService;
 import com.gc.sistem_pix.pix.dto.*;
 import com.gc.sistem_pix.pix.entity.PixKey;
+import com.gc.sistem_pix.pix.entity.PixLocationData;
 import com.gc.sistem_pix.pix.entity.PixTransaction;
 import com.gc.sistem_pix.pix.enums.TipoOperacaoPix;
 import com.gc.sistem_pix.pix.event.PixTransferCompletedEvent;
@@ -42,6 +44,7 @@ public class PixTransactionService {
     private final PixRecipientService recipientService;
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher events;
+    private final UserActivityEventService activityEvents;
 
     @Transactional(noRollbackFor = PixLimitExceededException.class)
     public PixTransactionResponse create(PixTransactionRequest request, UserModel authenticatedUser) {
@@ -103,8 +106,10 @@ public class PixTransactionService {
                 .tipoChave(request.tipoChave())
                 .nomeDestinatario(recipient.nome())
                 .documentoDestinatarioMascarado(recipient.documentoMascarado())
+                .location(PixLocationData.from(request.location()))
                 .build();
         PixTransaction saved = pixTransactionRepository.saveAndFlush(transaction);
+        activityEvents.recordActivity(originAccount.getUser(), "PIX_SENT", "Transferência Pix realizada.");
         events.publishEvent(new PixTransferCompletedEvent(originAccount.getUser(), destinationAccount.getUser(), saved));
         return toResponse(saved);
     }
@@ -219,7 +224,8 @@ public class PixTransactionService {
                 transaction.getChavePix(),
                 transaction.getTipoChave(),
                 transaction.getNomeDestinatario(),
-                transaction.getDocumentoDestinatarioMascarado());
+                transaction.getDocumentoDestinatarioMascarado(),
+                transaction.getLocation() == null ? null : transaction.getLocation().toResponse());
     }
 
     @Transactional(readOnly = true)
@@ -273,7 +279,8 @@ public class PixTransactionService {
                 tipo,
                 transacao.getValor(),
                 transacao.getDescricao(),
-                contraparte);
+                contraparte,
+                transacao.getLocation() == null ? null : transacao.getLocation().toResponse());
     }
 
     private BigDecimal somarPorTipo(List<PixExtractItemResponse> itens, TipoOperacaoPix tipo) {

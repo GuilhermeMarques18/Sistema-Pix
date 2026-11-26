@@ -36,4 +36,6 @@ public class ScheduledPix {
     private UUID transactionId;
     @Column(name = "failure_reason", length = 500)
     private String failureReason;
+    @Embedded
+    private PixLocationData location;
 }

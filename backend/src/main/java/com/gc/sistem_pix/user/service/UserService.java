@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gc.sistem_pix.activity.service.UserActivityEventService;
 import com.gc.sistem_pix.account.service.AccountService;
 import com.gc.sistem_pix.user.dto.LegalEntityDTO;
 import com.gc.sistem_pix.user.dto.NaturalPersonDTO;
@@ -36,6 +37,7 @@ public class UserService {
     private final PessoaJuridicaRepository pessoaJuridicaRepository;
     private final PasswordEncoder passwordEncoder;
     private final AccountService accountService;
+    private final UserActivityEventService activityEvents;
 
     @Transactional
     public UserResponseDTO createNaturalPerson(NaturalPersonDTO dto) {
@@ -125,7 +127,9 @@ public class UserService {
             user.setNotificationType(dto.notificationType());
         }
 
-        return toResponseDTO(userRepository.save(user));
+        UserModel updated = userRepository.save(user);
+        activityEvents.recordActivity(updated, "USER_UPDATED", "Dados da conta atualizados.");
+        return toResponseDTO(updated);
     }
 
     private void validateUpdateRequest(UserUpdateDTO dto) {

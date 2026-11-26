@@ -2,6 +2,7 @@ package com.gc.sistem_pix.pix.service;
 
 import com.gc.sistem_pix.account.entity.AccountModel;
 import com.gc.sistem_pix.account.repository.AccountRepository;
+import com.gc.sistem_pix.activity.service.UserActivityEventService;
 import com.gc.sistem_pix.pix.dto.CreatePixKeyRequest;
 import com.gc.sistem_pix.pix.dto.PixKeyResponse;
 import com.gc.sistem_pix.pix.dto.PixKeyValidationResponse;
@@ -34,6 +35,7 @@ public class PixKeyService {
     private final AccountRepository accountRepository;
     private final PessoaFisicaRepository pessoaFisicaRepository;
     private final PessoaJuridicaRepository pessoaJuridicaRepository;
+    private final UserActivityEventService activityEvents;
 
     @Transactional
     public PixKeyResponse create(CreatePixKeyRequest request, UserModel authenticatedUser) {
@@ -63,7 +65,9 @@ public class PixKeyService {
                 .key(normalizedKey)
                 .build();
 
-        return toResponse(pixKeyRepository.save(pixKey));
+        PixKey saved = pixKeyRepository.save(pixKey);
+        activityEvents.recordActivity(authenticatedUser, "PIX_KEY_CREATED", "Chave Pix cadastrada.");
+        return toResponse(saved);
     }
 
     @Transactional
@@ -109,7 +113,9 @@ public class PixKeyService {
         pixKey.setKey(normalizedKey);
 
         try {
-            return toResponse(pixKeyRepository.saveAndFlush(pixKey));
+            PixKey updated = pixKeyRepository.saveAndFlush(pixKey);
+            activityEvents.recordActivity(authenticatedUser, "PIX_KEY_UPDATED", "Chave Pix atualizada.");
+            return toResponse(updated);
         } catch (DataIntegrityViolationException exception) {
             throw new DuplicateResourceException(
                     "Não foi possível atualizar: a chave Pix conflita com um registro existente");
@@ -128,7 +134,9 @@ public class PixKeyService {
         PixKey pixKey = pixKeyRepository.findOwnedByIdForUpdate(id, authenticatedUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Chave Pix não encontrada"));
         pixKey.setStatus(request.status());
-        return toResponse(pixKeyRepository.save(pixKey));
+        PixKey updated = pixKeyRepository.save(pixKey);
+        activityEvents.recordActivity(authenticatedUser, "PIX_KEY_STATUS_UPDATED", "Status da chave Pix atualizado.");
+        return toResponse(updated);
     }
 
     @Transactional(readOnly = true)
